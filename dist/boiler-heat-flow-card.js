@@ -64,7 +64,7 @@ class BoilerHeatFlowCard extends HTMLElement {
   }
 
   _entityState(entityId) {
-    return entityId && this._hass && this._hass.states[entityId] ? this._hass.states[entityId] : null;
+    return entityId && this._hass && this._hass.states && this._hass.states[entityId] ? this._hass.states[entityId] : null;
   }
   _num(entityId) {
     const st = this._entityState(entityId);
@@ -179,7 +179,7 @@ class BoilerHeatFlowCard extends HTMLElement {
   }
 
   render() {
-    if (!this._config || !this._hass) return;
+    if (!this._config) return;
     const c = this._config;
     const tankTop = this._num(c.tank.top);
     const tankMid = this._num(c.tank.middle);
@@ -283,7 +283,7 @@ class BoilerHeatFlowCard extends HTMLElement {
       <ha-card>
         <div class="wrap">
           <div class="title">${c.title || 'Warmtesysteem'}</div>
-          <div class="version">v6.0</div>
+          <div class="version">v6.1</div>
           <svg class="flow" viewBox="0 0 100 100" preserveAspectRatio="none">
             ${this._renderPipe('collector', nodes.collector.color, nodes.collector.active, '2.6s')}
             ${this._renderPipe('hotwater', nodes.hotwater.color, nodes.hotwater.active, '2.8s', true)}

@@ -1,6 +1,6 @@
 # Boiler Heat Flow Card
 
-v6.0
+v6.1
 
 ## Nieuw
 - `center_no_grid`, `card_height`, `card_width`
@@ -75,7 +75,7 @@ thresholds:
 ```
 
 
-## v6.0
+## v6.1
 
 - Fixed visual config editor registration
 - Stable simple editor with standard dropdowns and inputs
