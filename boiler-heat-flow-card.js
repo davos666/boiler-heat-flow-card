@@ -1,26 +1,58 @@
-
 class BoilerHeatFlowCard extends HTMLElement {
-
   static getStubConfig() {
     return {
       type: 'custom:boiler-heat-flow-card',
       title: 'Warmtesysteem',
       animations: true,
       show_legend: true,
-      center_no_grid: false,
-      card_height: '560px',
       card_width: '100%',
-      min_height: '560px',
-      tank: { title: 'Boiler', top: '', middle: '', bottom: '' },
-      collector: { entity: '', pump: '', label: 'Zonnecollector', icon: 'mdi:white-balance-sunny' },
-      hotwater: { entity: '', active: '', flow_entity: '', flow_unit: 'l/min', label: 'Tapwater', icon: 'mdi:water-boiler' },
-      fireplace: { entity: '', active: '', label: 'Openhaard', icon: 'mdi:fireplace' },
-      heatpump: {
-        entity: '', supply_entity: '', return_entity: '', active: '',
-        label: 'Warmtepomp', icon: 'mdi:heat-pump',
+      card_height: '560px',
+      tank: {
+        title: 'Boiler',
+        top: '',
+        middle: '',
+        bottom: '',
       },
-      floor: { entity: '', active: '', label: 'Vloerverwarming', icon: 'mdi:heating-coil' },
-      radiator: { entity: '', active: '', label: 'Radiatoren', icon: 'mdi:radiator' },
+      collector: {
+        entity: '',
+        label: 'Zonnecollector',
+        pump: '',
+        icon: 'mdi:white-balance-sunny',
+      },
+      hotwater: {
+        entity: '',
+        active: '',
+        flow_entity: '',
+        flow_unit: 'l/min',
+        label: 'Tapwater',
+        icon: 'mdi:water-boiler',
+      },
+      fireplace: {
+        entity: '',
+        active: '',
+        label: 'Openhaard',
+        icon: 'mdi:fireplace',
+      },
+      heatpump: {
+        entity: '',
+        active: '',
+        supply_entity: '',
+        return_entity: '',
+        label: 'Warmtepomp',
+        icon: 'mdi:heat-pump',
+      },
+      floor: {
+        entity: '',
+        active: '',
+        label: 'Vloerverwarming',
+        icon: 'mdi:heating-coil',
+      },
+      radiator: {
+        entity: '',
+        active: '',
+        label: 'Radiatoren',
+        icon: 'mdi:radiator',
+      },
       thresholds: {
         collector: { mode: 'delta', delta: 5 },
         fireplace: { mode: 'temp', temp: 45 },
@@ -32,351 +64,499 @@ class BoilerHeatFlowCard extends HTMLElement {
     };
   }
 
-  setConfig(config) {
-    this._config = this._mergeConfig(config || {});
-    if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
-    this.render();
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this._config = BoilerHeatFlowCard.getStubConfig();
+    this._hass = null;
   }
 
-  _mergeConfig(config) {
-    const stub = BoilerHeatFlowCard.getStubConfig();
-    return {
-      ...stub,
-      ...config,
-      tank: { ...stub.tank, ...(config.tank || {}) },
-      collector: { ...stub.collector, ...(config.collector || {}) },
-      hotwater: { ...stub.hotwater, ...(config.hotwater || {}) },
-      fireplace: { ...stub.fireplace, ...(config.fireplace || {}) },
-      heatpump: { ...stub.heatpump, ...(config.heatpump || {}) },
-      floor: { ...stub.floor, ...(config.floor || {}) },
-      radiator: { ...stub.radiator, ...(config.radiator || {}) },
-      thresholds: { ...stub.thresholds, ...(config.thresholds || {}) },
+  setConfig(config) {
+    const base = BoilerHeatFlowCard.getStubConfig();
+    this._config = {
+      ...base,
+      ...(config || {}),
+      tank: { ...base.tank, ...(config?.tank || {}) },
+      collector: { ...base.collector, ...(config?.collector || {}) },
+      hotwater: { ...base.hotwater, ...(config?.hotwater || {}) },
+      fireplace: { ...base.fireplace, ...(config?.fireplace || {}) },
+      heatpump: { ...base.heatpump, ...(config?.heatpump || {}) },
+      floor: { ...base.floor, ...(config?.floor || {}) },
+      radiator: { ...base.radiator, ...(config?.radiator || {}) },
+      thresholds: this._normalizeThresholds(config?.thresholds || {}),
     };
+    this._render();
   }
 
   set hass(hass) {
     this._hass = hass;
-    if (this.shadowRoot) this.render();
+    this._render();
   }
 
-  getCardSize() { return 8; }
+  getCardSize() {
+    return 6;
+  }
+
   getGridOptions() {
-    return { rows: 8, columns: 12, min_rows: 6, min_columns: 8 };
+    return {
+      rows: 7,
+      columns: 12,
+      min_rows: 5,
+      max_rows: 8,
+      min_columns: 8,
+      max_columns: 12,
+    };
   }
 
-  _entityState(entityId) {
-    return entityId && this._hass && this._hass.states && this._hass.states[entityId] ? this._hass.states[entityId] : null;
+  _normalizeThresholds(thresholds) {
+    const defaults = BoilerHeatFlowCard.getStubConfig().thresholds;
+    const normalized = {
+      collector: { ...defaults.collector },
+      fireplace: { ...defaults.fireplace },
+      heatpump: { ...defaults.heatpump },
+      hotwater: { ...defaults.hotwater },
+      floor: { ...defaults.floor },
+      radiator: { ...defaults.radiator },
+    };
+
+    const sections = ['collector', 'fireplace', 'heatpump', 'hotwater', 'floor', 'radiator'];
+    sections.forEach((section) => {
+      if (thresholds[section] && typeof thresholds[section] === 'object') {
+        normalized[section] = {
+          ...normalized[section],
+          ...thresholds[section],
+        };
+      }
+    });
+
+    if (thresholds.collector_delta !== undefined) {
+      normalized.collector = { mode: 'delta', delta: Number(thresholds.collector_delta || 0) };
+    }
+    if (thresholds.collector_temp !== undefined) {
+      normalized.collector = { mode: 'temp', temp: Number(thresholds.collector_temp || 0) };
+    }
+    if (thresholds.fireplace_delta !== undefined) {
+      normalized.fireplace = { mode: 'delta', delta: Number(thresholds.fireplace_delta || 0) };
+    }
+    if (thresholds.fireplace_temp !== undefined) {
+      normalized.fireplace = { mode: 'temp', temp: Number(thresholds.fireplace_temp || 0) };
+    }
+    if (thresholds.heatpump_delta !== undefined) {
+      normalized.heatpump = { mode: 'delta', delta: Number(thresholds.heatpump_delta || 0) };
+    }
+    if (thresholds.heatpump_temp !== undefined) {
+      normalized.heatpump = { mode: 'temp', temp: Number(thresholds.heatpump_temp || 0) };
+    }
+    if (thresholds.hotwater_delta !== undefined) {
+      normalized.hotwater = { mode: 'delta', delta: Number(thresholds.hotwater_delta || 0) };
+    }
+    if (thresholds.hotwater_temp !== undefined) {
+      normalized.hotwater = { mode: 'temp', temp: Number(thresholds.hotwater_temp || 0) };
+    }
+    if (thresholds.floor_delta !== undefined) {
+      normalized.floor = { mode: 'delta', delta: Number(thresholds.floor_delta || 0) };
+    }
+    if (thresholds.floor_temp !== undefined) {
+      normalized.floor = { mode: 'temp', temp: Number(thresholds.floor_temp || 0) };
+    }
+    if (thresholds.radiator_delta !== undefined) {
+      normalized.radiator = { mode: 'delta', delta: Number(thresholds.radiator_delta || 0) };
+    }
+    if (thresholds.radiator_temp !== undefined) {
+      normalized.radiator = { mode: 'temp', temp: Number(thresholds.radiator_temp || 0) };
+    }
+
+    return normalized;
   }
-  _num(entityId) {
-    const st = this._entityState(entityId);
+
+  _getStateObj(entityId) {
+    if (!entityId || !this._hass?.states) return undefined;
+    return this._hass.states[entityId];
+  }
+
+  _getNumeric(entityId) {
+    const st = this._getStateObj(entityId);
     if (!st) return null;
-    const v = Number(st.state);
-    return Number.isFinite(v) ? v : null;
+    const n = Number.parseFloat(st.state);
+    return Number.isFinite(n) ? n : null;
   }
-  _bool(entityId) {
-    const st = this._entityState(entityId);
+
+  _isOn(entityId) {
+    const st = this._getStateObj(entityId);
     if (!st) return false;
-    return ['on', 'home', 'open', 'heat', 'heating', 'active', 'true'].includes(String(st.state).toLowerCase());
+    return ['on', 'home', 'heat', 'heating', 'true', 'open', 'active'].includes(String(st.state).toLowerCase());
   }
-  _fmtEntity(entityId, suffix='°C') {
-    const st = this._entityState(entityId);
+
+  _formatValue(entityId) {
+    const st = this._getStateObj(entityId);
     if (!st) return '—';
-    const n = Number(st.state);
-    if (Number.isFinite(n)) return `${n.toFixed(1)} ${suffix}`;
-    return st.state;
+    if (['unknown', 'unavailable'].includes(st.state)) return st.state;
+    const unit = st.attributes?.unit_of_measurement || '';
+    const n = Number.parseFloat(st.state);
+    if (Number.isFinite(n)) {
+      const decimals = Math.abs(n) >= 100 ? 0 : 1;
+      return `${n.toFixed(decimals)}${unit ? ` ${unit}` : ''}`;
+    }
+    return `${st.state}${unit ? ` ${unit}` : ''}`;
   }
-  _fmtNumber(value, suffix='°C') {
-    return Number.isFinite(value) ? `${value.toFixed(1)} ${suffix}` : '—';
+
+  _temperatureColor(value) {
+    if (value === null || value === undefined || Number.isNaN(value)) return '#7c8aa5';
+    if (value < 20) return '#4da3ff';
+    if (value < 35) return '#3cc0ff';
+    if (value < 50) return '#ffb547';
+    if (value < 65) return '#ff7a45';
+    return '#ff4d4d';
   }
-  _tap(entityId) {
+
+  _boilerGradient(top, middle, bottom) {
+    return `linear-gradient(180deg, ${this._temperatureColor(top)} 0%, ${this._temperatureColor(middle)} 48%, ${this._temperatureColor(bottom)} 100%)`;
+  }
+
+  _thresholdActive(sectionName, sourceTemp, compareTemp) {
+    const cfg = this._config.thresholds?.[sectionName] || {};
+    if (sourceTemp === null) return false;
+    if (cfg.mode === 'delta') {
+      const delta = Number(cfg.delta || 0);
+      return compareTemp !== null ? sourceTemp >= (compareTemp + delta) : false;
+    }
+    const temp = Number(cfg.temp || 0);
+    return sourceTemp >= temp;
+  }
+
+  _activeCollector() {
+    if (this._config.collector.pump) return this._isOn(this._config.collector.pump);
+    return this._thresholdActive('collector', this._getNumeric(this._config.collector.entity), this._getNumeric(this._config.tank.top));
+  }
+
+  _activeSection(sectionName, compareToBoilerTop = false) {
+    const sec = this._config[sectionName] || {};
+    if (sec.active) return this._isOn(sec.active);
+    if (sectionName === 'hotwater' && sec.flow_entity) {
+      const flow = this._getNumeric(sec.flow_entity);
+      if (flow !== null) return flow > 0;
+    }
+    const sourceTemp = this._getNumeric(sec.entity);
+    const compareTemp = compareToBoilerTop ? this._getNumeric(this._config.tank.top) : this._getNumeric(this._config.tank.top);
+    return this._thresholdActive(sectionName, sourceTemp, compareTemp);
+  }
+
+  _showMoreInfo(entityId) {
     if (!entityId) return;
     this.dispatchEvent(new CustomEvent('hass-more-info', {
-      bubbles: true, composed: true, detail: { entityId }
+      detail: { entityId },
+      bubbles: true,
+      composed: true,
     }));
   }
-  _avg(vals) {
-    const nums = vals.filter(v => Number.isFinite(v));
-    if (!nums.length) return null;
-    return nums.reduce((a,b) => a+b, 0) / nums.length;
-  }
-  _heatColor(temp) {
-    if (!Number.isFinite(temp)) return '#8fa6c2';
-    if (temp < 20) return '#5db9ff';
-    if (temp < 35) return '#74cfff';
-    if (temp < 50) return '#f5bf59';
-    if (temp < 65) return '#ff9958';
-    return '#ff6d5b';
-  }
-  _fillPercent(avg) {
-    if (!Number.isFinite(avg)) return 34;
-    return Math.max(18, Math.min(82, avg));
-  }
-  _legacyThreshold(key) {
-    const thr = this._config.thresholds || {};
-    const defaults = {
-      collector: { mode: 'delta', delta: 5 },
-      fireplace: { mode: 'temp', temp: 45 },
-      heatpump: { mode: 'temp', temp: 30 },
-      hotwater: { mode: 'temp', temp: 30 },
-      floor: { mode: 'temp', temp: 25 },
-      radiator: { mode: 'temp', temp: 30 },
-    };
-    const legacyMap = {
-      collector: ['collector_delta', 'delta'],
-      fireplace: ['fireplace_temp', 'temp'],
-      heatpump: ['heatpump_temp', 'temp'],
-      hotwater: ['hotwater_temp', 'temp'],
-      floor: ['floor_temp', 'temp'],
-      radiator: ['radiator_temp', 'temp'],
-    };
-    const [legacyKey, field] = legacyMap[key] || [];
-    if (legacyKey in thr) {
-      return { ...defaults[key], [field]: Number(thr[legacyKey]) };
-    }
-    return defaults[key] || { mode: 'temp', temp: 0 };
-  }
-  _thresholdConfig(key) {
-    const thr = this._config.thresholds || {};
-    const raw = thr[key];
-    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-      const mode = raw.mode === 'delta' ? 'delta' : 'temp';
-      const delta = Number(raw.delta);
-      const temp = Number(raw.temp);
-      return {
-        mode,
-        delta: Number.isFinite(delta) ? delta : this._legacyThreshold(key).delta,
-        temp: Number.isFinite(temp) ? temp : this._legacyThreshold(key).temp,
-      };
-    }
-    return this._legacyThreshold(key);
-  }
-  _matchesThreshold(key, sourceTemp, boilerRefTemp) {
-    const t = this._thresholdConfig(key);
-    if (!Number.isFinite(sourceTemp)) return false;
-    if (t.mode === 'delta') {
-      return Number.isFinite(boilerRefTemp) && sourceTemp >= boilerRefTemp + Number(t.delta || 0);
-    }
-    return sourceTemp >= Number(t.temp || 0);
-  }
-  _activeSource(key, temp, tankTop) {
-    const cfg = this._config[key] || {};
-    switch (key) {
-      case 'collector':
-        return this._bool(cfg.pump) || this._matchesThreshold('collector', temp, tankTop);
-      case 'hotwater': {
-        const flow = this._num(cfg.flow_entity);
-        return this._bool(cfg.active) || (Number.isFinite(flow) && flow > 0) || this._matchesThreshold('hotwater', temp, tankTop);
-      }
-      case 'fireplace':
-        return this._bool(cfg.active) || this._matchesThreshold('fireplace', temp, tankTop);
-      case 'heatpump': {
-        const supply = this._num(cfg.supply_entity);
-        return this._bool(cfg.active) || this._matchesThreshold('heatpump', supply, tankTop) || this._matchesThreshold('heatpump', temp, tankTop);
-      }
-      case 'floor':
-        return this._bool(cfg.active) || this._matchesThreshold('floor', temp, tankTop);
-      case 'radiator':
-        return this._bool(cfg.active) || this._matchesThreshold('radiator', temp, tankTop);
-      default:
-        return false;
-    }
-  }
 
-  _renderNode({cls, icon, label, value, subvalue='', color, x, y, align='left', entity, active=false}) {
-    const style = `left:${x}%;top:${y}%;--accent:${color};`;
+  _nodeTemplate(cfg, x, y, active, entityOverride = '') {
+    const entityId = entityOverride || cfg.entity;
+    const num = this._getNumeric(entityId);
+    const value = this._formatValue(entityId);
+    const color = this._temperatureColor(num);
     return `
-      <button class="node ${cls} ${align} ${active ? 'active' : ''}" style="${style}" data-entity="${entity || ''}">
-        <div class="icon-wrap"><ha-icon icon="${icon || 'mdi:thermometer'}"></ha-icon></div>
-        <div class="text-wrap">
-          <div class="label">${label || ''}</div>
-          <div class="value">${value}</div>
-          ${subvalue ? `<div class="subvalue">${subvalue}</div>` : ''}
+      <button class="node ${active ? 'active' : ''}" style="left:${x}%; top:${y}%; --accent:${color};" data-entity="${entityId || ''}">
+        <div class="node-icon"><ha-icon icon="${cfg.icon || 'mdi:help-circle'}"></ha-icon></div>
+        <div class="node-body">
+          <div class="node-label">${cfg.label || ''}</div>
+          <div class="node-value">${value}</div>
         </div>
       </button>
     `;
   }
 
-  _pathD(id) {
-    const paths = {
-      collector: 'M 50 12 L 50 22 L 50 29',
-      hotwater: 'M 17 29 L 33 29 L 41 29 L 41 35',
-      fireplace: 'M 17 47 L 34 47 L 44 47',
-      heatpump_supply: 'M 83 42 L 69 42 L 58 42 L 58 46',
-      heatpump_return: 'M 83 54 L 69 54 L 58 54 L 58 50',
-      floor: 'M 78 74 L 66 74 L 54 74 L 54 69',
-      radiator: 'M 22 74 L 34 74 L 46 74 L 46 69',
-    };
-    return paths[id] || '';
-  }
-
-  _renderPipe(id, color, active, dur = '2.8s', reverse = false) {
-    const path = this._pathD(id);
+  _pipeTemplate(id, d, colorClass, active, reverse = false) {
+    const animate = active && this._config.animations !== false;
     return `
-      <g style="--c:${color}">
-        <path class="pipe-bg" d="${path}"></path>
-        ${active ? `<path class="pipe-active" d="${path}"></path>` : ''}
-        ${active && this._config.animations !== false ? `
-          <circle class="flow-dot" r="0.54">
-            <animateMotion dur="${dur}" repeatCount="indefinite" ${reverse ? 'keyPoints="1;0" keyTimes="0;1" calcMode="linear"' : ''} path="${path}"></animateMotion>
-          </circle>
-          <circle class="flow-dot" r="0.38" opacity="0.72">
-            <animateMotion dur="${dur}" begin="0.95s" repeatCount="indefinite" ${reverse ? 'keyPoints="1;0" keyTimes="0;1" calcMode="linear"' : ''} path="${path}"></animateMotion>
-          </circle>` : ''}
-      </g>`;
+      <path class="pipe-bg" d="${d}" />
+      <path class="pipe-glow ${animate ? 'on' : ''}" d="${d}" />
+      <path id="${id}" class="pipe-active ${colorClass} ${active ? 'on' : ''}" d="${d}" />
+      ${animate ? `
+        <circle class="flow-dot ${colorClass}" r="2.9">
+          <animateMotion dur="1.8s" repeatCount="indefinite" rotate="auto">
+            <mpath href="#${id}"></mpath>
+          </animateMotion>
+        </circle>
+        <circle class="flow-dot ${colorClass} delay-1" r="2.9">
+          <animateMotion dur="1.8s" begin="-0.6s" repeatCount="indefinite" rotate="auto">
+            <mpath href="#${id}"></mpath>
+          </animateMotion>
+        </circle>
+        <circle class="flow-dot ${colorClass} delay-2" r="2.9">
+          <animateMotion dur="1.8s" begin="-1.2s" repeatCount="indefinite" rotate="auto">
+            <mpath href="#${id}"></mpath>
+          </animateMotion>
+        </circle>
+      ` : ''}
+      ${animate && reverse ? `
+        <circle class="flow-dot ${colorClass}" r="2.9">
+          <animateMotion dur="1.8s" repeatCount="indefinite" rotate="auto-reverse" keyPoints="1;0" keyTimes="0;1" calcMode="linear">
+            <mpath href="#${id}"></mpath>
+          </animateMotion>
+        </circle>
+      ` : ''}
+    `;
   }
 
-  render() {
-    if (!this._config) return;
-    const c = this._config;
-    const tankTop = this._num(c.tank.top);
-    const tankMid = this._num(c.tank.middle);
-    const tankBottom = this._num(c.tank.bottom);
-    const avg = this._avg([tankTop, tankMid, tankBottom]);
-    const fillPercent = this._fillPercent(avg);
-    const tankColor = this._heatColor(avg);
-    const hpSupply = this._num(c.heatpump.supply_entity);
-    const hpReturn = this._num(c.heatpump.return_entity);
-    const hpMain = Number.isFinite(hpSupply) ? hpSupply : this._num(c.heatpump.entity);
-    const hotwaterFlow = this._num(c.hotwater.flow_entity);
+  _render() {
+    if (!this.shadowRoot || !this._config) return;
 
-    const nodes = {
-      collector: { value: this._fmtEntity(c.collector.entity), color: this._heatColor(this._num(c.collector.entity)), active: this._activeSource('collector', this._num(c.collector.entity), tankTop) },
-      hotwater: { value: this._fmtEntity(c.hotwater.entity), subvalue: Number.isFinite(hotwaterFlow) ? `${hotwaterFlow.toFixed(1)} ${c.hotwater.flow_unit || 'l/min'}` : '', color: this._heatColor(this._num(c.hotwater.entity)), active: this._activeSource('hotwater', this._num(c.hotwater.entity), tankTop) },
-      fireplace: { value: this._fmtEntity(c.fireplace.entity), color: this._heatColor(this._num(c.fireplace.entity)), active: this._activeSource('fireplace', this._num(c.fireplace.entity), tankTop) },
-      heatpump: { value: this._fmtNumber(hpMain), subvalue: (Number.isFinite(hpSupply) || Number.isFinite(hpReturn)) ? `Aanvoer ${this._fmtNumber(hpSupply)} · Retour ${this._fmtNumber(hpReturn)}` : '', color: this._heatColor(hpMain), active: this._activeSource('heatpump', hpMain, tankTop) },
-      floor: { value: this._fmtEntity(c.floor.entity), color: this._heatColor(this._num(c.floor.entity)), active: this._activeSource('floor', this._num(c.floor.entity), tankTop) },
-      radiator: { value: this._fmtEntity(c.radiator.entity), color: this._heatColor(this._num(c.radiator.entity)), active: this._activeSource('radiator', this._num(c.radiator.entity), tankTop) },
-    };
+    const top = this._getNumeric(this._config.tank.top);
+    const middle = this._getNumeric(this._config.tank.middle);
+    const bottom = this._getNumeric(this._config.tank.bottom);
 
-    const width = c.card_width || '100%';
-    const height = c.card_height || '560px';
-    const centered = c.center_no_grid !== false;
+    const collectorActive = this._activeCollector();
+    const hotwaterActive = this._activeSection('hotwater');
+    const fireplaceActive = this._activeSection('fireplace');
+    const heatpumpActive = this._activeSection('heatpump');
+    const floorActive = this._activeSection('floor');
+    const radiatorActive = this._activeSection('radiator');
+
+    const cardHeight = this._config.card_height || '560px';
+    const cardWidth = this._config.card_width || '100%';
+
+    const hpMainEntity = this._config.heatpump.supply_entity || this._config.heatpump.entity;
+    const hpReturnEntity = this._config.heatpump.return_entity || this._config.heatpump.entity;
 
     this.shadowRoot.innerHTML = `
       <style>
-        :host { display:block; width:100%; }
+        :host { display: block; }
         ha-card {
-          position:relative;
-          overflow:hidden;
-          width:${width};
-          min-height:${c.min_height || '560px'};
-          height:${height};
-          max-width:100%;
-          margin:${centered ? '0 auto' : '0'};
-          background: linear-gradient(180deg, rgba(14,24,42,0.98) 0%, rgba(5,11,22,0.99) 100%);
-          border:1px solid rgba(162,188,233,0.12);
-          border-radius:24px;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 14px 44px rgba(0,0,0,0.32);
+          position: relative;
+          overflow: hidden;
+          width: ${cardWidth};
+          min-height: ${cardHeight};
+          border-radius: 24px;
+          background:
+            radial-gradient(circle at top, rgba(255,255,255,0.05), transparent 32%),
+            linear-gradient(180deg, rgba(14,18,28,0.98), rgba(17,22,34,1));
+          color: #edf3ff;
         }
-        .wrap { position:relative; width:100%; height:100%; min-height:inherit; }
-        .title { position:absolute; left:20px; top:16px; z-index:5; font-size:clamp(22px, 1.5vw, 30px); font-weight:700; color:#f6f9ff; }
-        .version { position:absolute; right:18px; top:16px; z-index:5; width:38px; height:38px; border-radius:999px; display:grid; place-items:center; background:rgba(255,255,255,0.04); color:#d6e3fb; border:1px solid rgba(255,255,255,0.08); font-size:13px; font-weight:700; }
-        svg.flow { position:absolute; inset:0; width:100%; height:100%; z-index:1; }
-        .pipe-bg { fill:none; stroke:rgba(148, 169, 201, 0.18); stroke-width:1.65; stroke-linecap:round; stroke-linejoin:round; }
-        .pipe-active { fill:none; stroke:var(--c); stroke-width:1.05; stroke-linecap:round; stroke-linejoin:round; filter: drop-shadow(0 0 3px color-mix(in srgb, var(--c) 45%, transparent)); }
-        .flow-dot { fill:var(--c); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--c) 60%, transparent)); }
-
-        .tank { position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); width:200px; height:392px; z-index:3; cursor:pointer; border:0; background:none; padding:0; }
-        .tank-shell { position:absolute; inset:12px 18px; border-radius:100px; background:linear-gradient(180deg, #182741 0%, #0c1526 100%); border:1px solid rgba(186,205,241,0.14); box-shadow: inset 10px 0 20px rgba(255,255,255,0.03), inset -14px 0 24px rgba(0,0,0,0.28), 0 18px 36px rgba(0,0,0,0.18); overflow:hidden; }
-        .tank-shell::before { content:""; position:absolute; left:14%; top:7%; width:10px; height:78%; border-radius:999px; background:linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.01)); opacity:0.4; }
-        .tank-shell::after { content:""; position:absolute; inset:10px; border-radius:90px; border:1px solid rgba(255,255,255,0.05); }
-        .tank-cap { position:absolute; left:50%; top:0; transform:translateX(-50%); width:110px; height:18px; border-radius:999px; background:linear-gradient(180deg, rgba(255,255,255,0.26), rgba(255,255,255,0.07)); }
-        .tank-water {
-          position:absolute; left:18px; right:18px; bottom:18px; height:${fillPercent}%;
-          background:linear-gradient(180deg, color-mix(in srgb, ${tankColor} 88%, white 12%) 0%, color-mix(in srgb, ${tankColor} 78%, #10243c 22%) 100%);
-          border-radius:18px 18px 34px 34px;
-          box-shadow: inset 0 8px 12px rgba(255,255,255,0.06), inset 0 -8px 14px rgba(0,0,0,0.12);
-          overflow:hidden;
+        .wrap {
+          position: relative;
+          min-height: ${cardHeight};
+          padding: 12px;
         }
-        .tank-water::before { content:""; position:absolute; left:14px; right:14px; top:-7px; height:14px; border-radius:999px; background:linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.03)); border:1px solid rgba(255,255,255,0.06); }
-        .tank-content { position:absolute; inset:0; z-index:2; padding:26px 18px 18px; color:#f6f9ff; }
-        .tank-title { text-align:center; font-size:24px; font-weight:800; margin-top:4px; }
-        .tank-sub { text-align:center; color:#d8e5fb; font-size:13px; margin-top:2px; }
-        .zones { display:grid; grid-template-rows:1fr 1fr 1fr; gap:14px; margin-top:18px; }
-        .zone { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-radius:18px; background:linear-gradient(180deg, rgba(8,16,31,0.58), rgba(8,16,31,0.32)); border:1px solid rgba(255,255,255,0.07); }
-        .zone .name { font-size:11px; letter-spacing:0.12em; color:#dbe7ff; font-weight:700; }
-        .zone .val { font-size:15px; color:#fff; font-weight:800; }
-        .tempbar { position:absolute; right:20px; top:106px; bottom:42px; width:8px; border-radius:999px; background:linear-gradient(180deg, #ff675b 0%, #f3c05e 50%, #67cfff 100%); opacity:0.95; }
-
-        .node { position:absolute; transform:translate(-50%,-50%); z-index:4; min-width:220px; max-width:260px; padding:14px 16px; display:flex; align-items:center; gap:12px; text-align:left; border-radius:22px; border:1px solid rgba(173,198,243,0.10); background:linear-gradient(180deg, rgba(12,25,45,0.94), rgba(8,16,30,0.92)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 24px rgba(0,0,0,0.2); cursor:pointer; }
-        .node.right { flex-direction:row-reverse; text-align:right; }
-        .node.active { border-color: color-mix(in srgb, var(--accent) 35%, rgba(255,255,255,0.10)); }
-        .icon-wrap { width:50px; height:50px; border-radius:16px; flex:0 0 50px; display:grid; place-items:center; background:linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03)); border:1px solid rgba(255,255,255,0.06); color:#dce9ff; }
-        .icon-wrap ha-icon { width:24px; height:24px; }
-        .label { color:#d7e6ff; font-size:14px; }
-        .value { color:#fff; font-weight:800; font-size:20px; margin-top:2px; }
-        .subvalue { color:#a9c0df; font-size:12px; margin-top:4px; }
-
-        .legend { position:absolute; right:18px; bottom:16px; z-index:4; display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:18px; border:1px solid rgba(255,255,255,0.08); background:rgba(10,18,35,0.84); color:#d9e6fb; font-size:14px; }
-        .legend-dots { display:flex; gap:7px; align-items:center; }
-        .legend-dots span { width:10px; height:10px; border-radius:999px; display:block; }
-        .legend-dots span:nth-child(1) { background:#ff9958; }
-        .legend-dots span:nth-child(2) { background:#67cfff; }
-        .legend-dots span:nth-child(3) { background:#fff; width:18px; height:6px; }
-
-        @media (max-width: 1100px) {
-          ha-card { width:100%; min-height:640px; }
-          .tank { width:180px; height:360px; }
-          .node { min-width:186px; max-width:220px; }
-          .value { font-size:18px; }
-          .node.collector { left:50% !important; top:10% !important; }
-          .node.hotwater { left:18% !important; top:29% !important; }
-          .node.fireplace { left:18% !important; top:47% !important; }
-          .node.heatpump { left:82% !important; top:48% !important; }
-          .node.floor { left:78% !important; top:75% !important; }
-          .node.radiator { left:22% !important; top:75% !important; }
+        .title {
+          position: absolute;
+          left: 20px;
+          top: 14px;
+          font-size: 22px;
+          font-weight: 700;
+          letter-spacing: 0.02em;
+          z-index: 3;
+        }
+        svg.flow {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 0;
+          pointer-events: none;
+        }
+        .pipe-bg {
+          fill: none;
+          stroke: rgba(135, 156, 194, 0.16);
+          stroke-width: 8;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+        .pipe-glow {
+          fill: none;
+          stroke-width: 12;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          opacity: 0;
+          filter: blur(5px);
+        }
+        .pipe-glow.on { opacity: 0.28; }
+        .pipe-active {
+          fill: none;
+          stroke-width: 3.8;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          opacity: 0.35;
+        }
+        .pipe-active.on { opacity: 1; }
+        .pipe-hot { stroke: #ffab4c; }
+        .pipe-red { stroke: #ff7b5c; }
+        .pipe-blue { stroke: #57b9ff; }
+        .pipe-green { stroke: #7ee787; }
+        .flow-dot { filter: drop-shadow(0 0 6px currentColor); }
+        .flow-dot.pipe-hot, .flow-dot.pipe-hot * { color: #ffab4c; fill: #ffab4c; }
+        .flow-dot.pipe-red, .flow-dot.pipe-red * { color: #ff7b5c; fill: #ff7b5c; }
+        .flow-dot.pipe-blue, .flow-dot.pipe-blue * { color: #57b9ff; fill: #57b9ff; }
+        .flow-dot.pipe-green, .flow-dot.pipe-green * { color: #7ee787; fill: #7ee787; }
+        .node {
+          position: absolute;
+          transform: translate(-50%, -50%);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: 220px;
+          padding: 14px 16px;
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 20px;
+          background: rgba(20, 27, 41, 0.82);
+          color: #edf3ff;
+          box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+          cursor: pointer;
+          z-index: 2;
+          text-align: left;
+        }
+        .node.active {
+          box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 60%, white 10%), 0 0 28px color-mix(in srgb, var(--accent) 35%, transparent);
+        }
+        .node-icon {
+          flex: 0 0 48px;
+          width: 48px;
+          height: 48px;
+          border-radius: 14px;
+          display: grid;
+          place-items: center;
+          background: color-mix(in srgb, var(--accent) 22%, rgba(255,255,255,0.04));
+          color: var(--accent);
+        }
+        .node-icon ha-icon { --mdc-icon-size: 28px; }
+        .node-label { font-size: 14px; color: #b9c6df; line-height: 1.2; }
+        .node-value { margin-top: 4px; font-size: 20px; font-weight: 700; line-height: 1.2; }
+        .boiler {
+          position: absolute;
+          left: 50%;
+          top: 54%;
+          transform: translate(-50%, -50%);
+          width: 180px;
+          height: 280px;
+          border-radius: 80px;
+          background: rgba(20,27,41,0.92);
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 18px 40px rgba(0,0,0,0.30);
+          z-index: 2;
+          overflow: hidden;
+        }
+        .boiler-fill {
+          position: absolute;
+          inset: 10px;
+          border-radius: 72px;
+          background: ${this._boilerGradient(top, middle, bottom)};
+          opacity: 0.88;
+        }
+        .boiler-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.02) 35%, rgba(255,255,255,0.01));
+          pointer-events: none;
+        }
+        .boiler-title {
+          position: absolute;
+          top: 18px;
+          width: 100%;
+          text-align: center;
+          font-size: 22px;
+          font-weight: 800;
+          z-index: 2;
+          text-shadow: 0 2px 14px rgba(0,0,0,0.35);
+        }
+        .boiler-temps {
+          position: absolute;
+          inset: 64px 18px 18px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          z-index: 2;
+        }
+        .temp-chip {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px 12px;
+          border-radius: 14px;
+          background: rgba(10,14,22,0.35);
+          border: 1px solid rgba(255,255,255,0.12);
+          cursor: pointer;
+        }
+        .temp-chip .label {
+          font-size: 12px;
+          color: #d8e2f4;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+        .temp-chip .value { font-size: 18px; font-weight: 700; }
+        .legend {
+          position: absolute;
+          right: 16px;
+          bottom: 12px;
+          z-index: 2;
+          color: #8fa2c5;
+          font-size: 12px;
+          display: ${this._config.show_legend === false ? 'none' : 'flex'};
+          gap: 8px;
+          align-items: center;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: rgba(20,27,41,0.6);
+          border: 1px solid rgba(255,255,255,0.05);
+        }
+        .legend-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          background: linear-gradient(180deg, #57b9ff, #ffab4c);
         }
       </style>
       <ha-card>
         <div class="wrap">
-          <div class="title">${c.title || 'Warmtesysteem'}</div>
-          <div class="version">v6.1.1</div>
+          <div class="title">${this._config.title || 'Warmtesysteem'}</div>
           <svg class="flow" viewBox="0 0 100 100" preserveAspectRatio="none">
-            ${this._renderPipe('collector', nodes.collector.color, nodes.collector.active, '2.6s')}
-            ${this._renderPipe('hotwater', nodes.hotwater.color, nodes.hotwater.active, '2.8s', true)}
-            ${this._renderPipe('fireplace', nodes.fireplace.color, nodes.fireplace.active, '2.7s')}
-            ${this._renderPipe('heatpump_supply', nodes.heatpump.color, nodes.heatpump.active, '2.4s', true)}
-            ${this._renderPipe('heatpump_return', '#7db2ff', nodes.heatpump.active, '2.9s')}
-            ${this._renderPipe('floor', nodes.floor.color, nodes.floor.active, '3.0s', true)}
-            ${this._renderPipe('radiator', nodes.radiator.color, nodes.radiator.active, '3.0s')}
+            ${this._pipeTemplate('pipe-collector', 'M50 20 L50 41', 'pipe-hot', collectorActive)}
+            ${this._pipeTemplate('pipe-hotwater', 'M23 33 L39 33 Q45 33 45 39 L45 42', 'pipe-blue', hotwaterActive)}
+            ${this._pipeTemplate('pipe-fireplace', 'M23 54 L39 54 Q45 54 45 50 L45 48', 'pipe-red', fireplaceActive)}
+            ${this._pipeTemplate('pipe-hp-supply', 'M77 50 L61 50 Q55 50 55 48', 'pipe-green', heatpumpActive)}
+            ${this._pipeTemplate('pipe-hp-return', 'M77 58 L61 58 Q55 58 55 52', 'pipe-green', heatpumpActive)}
+            ${this._pipeTemplate('pipe-floor', 'M77 72 L61 72 Q55 72 55 66 L55 62', 'pipe-hot', floorActive)}
+            ${this._pipeTemplate('pipe-radiator', 'M77 80 L61 80 Q55 80 55 72 L55 66', 'pipe-hot', radiatorActive)}
           </svg>
 
-          ${this._renderNode({ cls:'collector', icon:c.collector.icon, label:c.collector.label, value:nodes.collector.value, color:nodes.collector.color, x:50, y:10, entity:c.collector.entity, active:nodes.collector.active })}
-          ${this._renderNode({ cls:'hotwater', icon:c.hotwater.icon, label:c.hotwater.label, value:nodes.hotwater.value, subvalue:nodes.hotwater.subvalue, color:nodes.hotwater.color, x:17, y:29, entity:c.hotwater.flow_entity || c.hotwater.entity, active:nodes.hotwater.active })}
-          ${this._renderNode({ cls:'fireplace', icon:c.fireplace.icon, label:c.fireplace.label, value:nodes.fireplace.value, color:nodes.fireplace.color, x:17, y:47, entity:c.fireplace.entity, active:nodes.fireplace.active })}
-          ${this._renderNode({ cls:'heatpump right', icon:c.heatpump.icon, label:c.heatpump.label, value:nodes.heatpump.value, subvalue:nodes.heatpump.subvalue, color:nodes.heatpump.color, x:83, y:48, align:'right', entity:c.heatpump.supply_entity || c.heatpump.entity, active:nodes.heatpump.active })}
-          ${this._renderNode({ cls:'floor right', icon:c.floor.icon, label:c.floor.label, value:nodes.floor.value, color:nodes.floor.color, x:78, y:74, align:'right', entity:c.floor.entity, active:nodes.floor.active })}
-          ${this._renderNode({ cls:'radiator', icon:c.radiator.icon, label:c.radiator.label, value:nodes.radiator.value, color:nodes.radiator.color, x:22, y:74, entity:c.radiator.entity, active:nodes.radiator.active })}
+          ${this._nodeTemplate(this._config.collector, 50, 13, collectorActive)}
+          ${this._nodeTemplate(this._config.hotwater, 14, 31, hotwaterActive, this._config.hotwater.flow_entity || this._config.hotwater.entity)}
+          ${this._nodeTemplate(this._config.fireplace, 14, 54, fireplaceActive)}
+          ${this._nodeTemplate(this._config.heatpump, 86, 54, heatpumpActive, hpMainEntity)}
+          ${this._nodeTemplate(this._config.floor, 86, 72, floorActive)}
+          ${this._nodeTemplate(this._config.radiator, 86, 82, radiatorActive)}
 
-          <button class="tank" data-entity="${c.tank.top || c.tank.middle || c.tank.bottom || ''}">
-            <div class="tank-cap"></div>
-            <div class="tank-shell"><div class="tank-water"></div></div>
-            <div class="tank-content">
-              <div class="tank-title">${c.tank.title || 'Boiler'}</div>
-              <div class="tank-sub">Gemiddeld: ${Number.isFinite(avg) ? avg.toFixed(1) + ' °C' : '—'}</div>
-              <div class="zones">
-                <div class="zone"><span class="name">BOVEN</span><span class="val">${this._fmtEntity(c.tank.top)}</span></div>
-                <div class="zone"><span class="name">MIDDEN</span><span class="val">${this._fmtEntity(c.tank.middle)}</span></div>
-                <div class="zone"><span class="name">ONDER</span><span class="val">${this._fmtEntity(c.tank.bottom)}</span></div>
-              </div>
+          <div class="boiler">
+            <div class="boiler-fill"></div>
+            <div class="boiler-overlay"></div>
+            <div class="boiler-title">${this._config.tank.title || 'Boiler'}</div>
+            <div class="boiler-temps">
+              <div class="temp-chip" data-entity="${this._config.tank.top || ''}"><span class="label">Boven</span><span class="value">${this._formatValue(this._config.tank.top)}</span></div>
+              <div class="temp-chip" data-entity="${this._config.tank.middle || ''}"><span class="label">Midden</span><span class="value">${this._formatValue(this._config.tank.middle)}</span></div>
+              <div class="temp-chip" data-entity="${this._config.tank.bottom || ''}"><span class="label">Onder</span><span class="value">${this._formatValue(this._config.tank.bottom)}</span></div>
             </div>
-            <div class="tempbar"></div>
-          </button>
+          </div>
 
-          ${c.show_legend === false ? '' : `<div class="legend"><div class="legend-dots"><span></span><span></span><span></span></div><span>warmteflow actief</span></div>`}
+          <div class="legend"><span class="legend-dot"></span> warmteflow actief</div>
         </div>
       </ha-card>
     `;
 
-    this.shadowRoot.querySelectorAll('[data-entity]').forEach(el => {
-      el.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        const id = el.getAttribute('data-entity');
-        if (id) this._tap(id);
-      });
+    this.shadowRoot.querySelectorAll('[data-entity]').forEach((el) => {
+      el.addEventListener('click', () => this._showMoreInfo(el.getAttribute('data-entity')));
     });
   }
 }
 
+if (!customElements.get('boiler-heat-flow-card')) {
+  customElements.define('boiler-heat-flow-card', BoilerHeatFlowCard);
+}
 
-customElements.define('boiler-heat-flow-card', BoilerHeatFlowCard);
+window.customCards = window.customCards || [];
+if (!window.customCards.find((card) => card.type === 'boiler-heat-flow-card')) {
+  window.customCards.push({
+    type: 'boiler-heat-flow-card',
+    name: 'Boiler Heat Flow Card',
+    description: 'Thermische flow kaart voor collector, boiler, openhaard, warmtepomp en verwarming.',
+    preview: true,
+    documentationURL: 'https://github.com/davos666/boiler-heat-flow-card',
+  });
+}
