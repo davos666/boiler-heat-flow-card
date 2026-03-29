@@ -1,25 +1,22 @@
 # Boiler Heat Flow Card
 
-Een Home Assistant custom card voor warmtestromen tussen zonnecollector, boiler, openhaard, warmtepomp, vloerverwarming en radiatoren.
+Custom Home Assistant card voor boiler, zonnecollector, openhaard, warmtepomp, tapwater, vloerverwarming en radiatoren.
+
+## Nieuw in v5.6
+
+- aparte aanvoer- en retourlijnen voor de warmtepomp
+- optionele tapwater flow sensor
+- strakkere pipes met bolletjes-animatie
+- fullscreen hoogte verbeterd
+- nieuwe config editor met Home Assistant entity pickers
 
 ## HACS
-
-Gebruik als custom repository van het type **Dashboard**.
 
 Resource:
 
 `/hacsfiles/boiler-heat-flow-card/boiler-heat-flow-card.js`
 
-## Features in v5.4
-
-- Strakke Sunsynk-achtige layout
-- Dunne leidingen in plaats van brede vlakken
-- Bewegende bolletjes als flow-animatie
-- Schermvullende hoogte
-- Klikbare config editor met dropdowns voor entities
-- Boiler in strakke cilinder-vorm
-
-## Voorbeeldconfig
+## Voorbeeld
 
 ```yaml
 type: custom:boiler-heat-flow-card
@@ -42,6 +39,8 @@ collector:
 
 hotwater:
   entity: sensor.tapwater_temp
+  flow_entity: sensor.tapwater_flow
+  flow_unit: l/min
   active: binary_sensor.tapwater_actief
   label: Tapwater
   icon: mdi:water-boiler
@@ -54,6 +53,8 @@ fireplace:
 
 heatpump:
   entity: sensor.warmtepomp_temp
+  supply_entity: sensor.warmtepomp_aanvoer
+  return_entity: sensor.warmtepomp_retour
   active: binary_sensor.warmtepomp_actief
   label: Warmtepomp
   icon: mdi:heat-pump
@@ -69,12 +70,4 @@ radiator:
   active: binary_sensor.radiator_actief
   label: Radiatoren
   icon: mdi:radiator
-
-thresholds:
-  collector_delta: 5
-  fireplace_temp: 45
-  heatpump_temp: 30
-  hotwater_temp: 30
-  floor_temp: 25
-  radiator_temp: 30
 ```
