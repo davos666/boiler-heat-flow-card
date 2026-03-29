@@ -80,3 +80,7 @@ thresholds:
 - Fixed visual config editor registration
 - Stable simple editor with standard dropdowns and inputs
 - YAML config remains supported
+
+
+## v6.2
+This release disables the visual editor intentionally and supports YAML-only configuration for stability.
