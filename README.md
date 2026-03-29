@@ -1,27 +1,21 @@
 # Boiler Heat Flow Card
 
-Custom Home Assistant card voor boiler, zonnecollector, openhaard, warmtepomp, tapwater, vloerverwarming en radiatoren.
+v5.7
 
-## Nieuw in v5.6
-
-- aparte aanvoer- en retourlijnen voor de warmtepomp
+## Nieuw
+- `center_no_grid`, `card_height`, `card_width`
+- kleinere standaard layout
+- werkende config editor met gewone dropdowns
+- aparte aanvoer/retour warmtepomp
 - optionele tapwater flow sensor
-- strakkere pipes met bolletjes-animatie
-- fullscreen hoogte verbeterd
-- nieuwe config editor met Home Assistant entity pickers
-
-## HACS
-
-Resource:
-
-`/hacsfiles/boiler-heat-flow-card/boiler-heat-flow-card.js`
 
 ## Voorbeeld
-
 ```yaml
 type: custom:boiler-heat-flow-card
 title: Warmtesysteem
-fullscreen: true
+center_no_grid: false
+card_height: 90%
+card_width: 90%
 animations: true
 show_legend: true
 
@@ -70,4 +64,12 @@ radiator:
   active: binary_sensor.radiator_actief
   label: Radiatoren
   icon: mdi:radiator
+
+thresholds:
+  collector_delta: 5
+  fireplace_temp: 45
+  heatpump_temp: 30
+  hotwater_temp: 30
+  floor_temp: 25
+  radiator_temp: 30
 ```

@@ -1,3 +1,4 @@
+
 class BoilerHeatFlowCard extends HTMLElement {
   static getConfigElement() {
     return document.createElement('boiler-heat-flow-card-editor');
@@ -7,30 +8,25 @@ class BoilerHeatFlowCard extends HTMLElement {
     return {
       type: 'custom:boiler-heat-flow-card',
       title: 'Warmtesysteem',
-      fullscreen: true,
       animations: true,
       show_legend: true,
+      center_no_grid: false,
+      card_height: '90%',
+      card_width: '90%',
+      min_height: '560px',
       tank: { title: 'Boiler', top: '', middle: '', bottom: '' },
       collector: { entity: '', pump: '', label: 'Zonnecollector', icon: 'mdi:white-balance-sunny' },
       hotwater: { entity: '', active: '', flow_entity: '', flow_unit: 'l/min', label: 'Tapwater', icon: 'mdi:water-boiler' },
       fireplace: { entity: '', active: '', label: 'Openhaard', icon: 'mdi:fireplace' },
       heatpump: {
-        entity: '',
-        supply_entity: '',
-        return_entity: '',
-        active: '',
-        label: 'Warmtepomp',
-        icon: 'mdi:heat-pump',
+        entity: '', supply_entity: '', return_entity: '', active: '',
+        label: 'Warmtepomp', icon: 'mdi:heat-pump',
       },
       floor: { entity: '', active: '', label: 'Vloerverwarming', icon: 'mdi:heating-coil' },
       radiator: { entity: '', active: '', label: 'Radiatoren', icon: 'mdi:radiator' },
       thresholds: {
-        collector_delta: 5,
-        fireplace_temp: 45,
-        heatpump_temp: 30,
-        hotwater_temp: 30,
-        floor_temp: 25,
-        radiator_temp: 30,
+        collector_delta: 5, fireplace_temp: 45, heatpump_temp: 30,
+        hotwater_temp: 30, floor_temp: 25, radiator_temp: 30,
       },
     };
   }
@@ -63,9 +59,9 @@ class BoilerHeatFlowCard extends HTMLElement {
     if (this.shadowRoot) this.render();
   }
 
-  getCardSize() { return 12; }
+  getCardSize() { return 8; }
   getGridOptions() {
-    return { rows: 12, columns: 12, min_rows: 10, min_columns: 12 };
+    return { rows: 8, columns: 12, min_rows: 6, min_columns: 8 };
   }
 
   _entityState(entityId) {
@@ -113,7 +109,7 @@ class BoilerHeatFlowCard extends HTMLElement {
   }
   _fillPercent(avg) {
     if (!Number.isFinite(avg)) return 34;
-    return Math.max(22, Math.min(88, avg));
+    return Math.max(18, Math.min(82, avg));
   }
   _activeSource(key, temp, tankTop) {
     const cfg = this._config[key] || {};
@@ -156,13 +152,13 @@ class BoilerHeatFlowCard extends HTMLElement {
 
   _pathD(id) {
     const paths = {
-      collector: 'M 50 11 L 50 20 L 50 29',
-      hotwater: 'M 15 28 L 33 28 L 41 28 L 41 33',
-      fireplace: 'M 15 49 L 34 49 L 44 49',
-      heatpump_supply: 'M 85 42 L 70 42 L 58 42 L 58 47',
-      heatpump_return: 'M 85 56 L 70 56 L 58 56 L 58 52',
-      floor: 'M 78 76 L 65 76 L 54 76 L 54 70',
-      radiator: 'M 22 76 L 35 76 L 46 76 L 46 70',
+      collector: 'M 50 12 L 50 22 L 50 29',
+      hotwater: 'M 17 29 L 33 29 L 41 29 L 41 35',
+      fireplace: 'M 17 47 L 34 47 L 44 47',
+      heatpump_supply: 'M 83 42 L 69 42 L 58 42 L 58 46',
+      heatpump_return: 'M 83 54 L 69 54 L 58 54 L 58 50',
+      floor: 'M 78 74 L 66 74 L 54 74 L 54 69',
+      radiator: 'M 22 74 L 34 74 L 46 74 L 46 69',
     };
     return paths[id] || '';
   }
@@ -174,11 +170,11 @@ class BoilerHeatFlowCard extends HTMLElement {
         <path class="pipe-bg" d="${path}"></path>
         ${active ? `<path class="pipe-active" d="${path}"></path>` : ''}
         ${active && this._config.animations !== false ? `
-          <circle class="flow-dot" r="0.68">
+          <circle class="flow-dot" r="0.54">
             <animateMotion dur="${dur}" repeatCount="indefinite" ${reverse ? 'keyPoints="1;0" keyTimes="0;1" calcMode="linear"' : ''} path="${path}"></animateMotion>
           </circle>
-          <circle class="flow-dot" r="0.48" opacity="0.72">
-            <animateMotion dur="${dur}" begin="0.85s" repeatCount="indefinite" ${reverse ? 'keyPoints="1;0" keyTimes="0;1" calcMode="linear"' : ''} path="${path}"></animateMotion>
+          <circle class="flow-dot" r="0.38" opacity="0.72">
+            <animateMotion dur="${dur}" begin="0.95s" repeatCount="indefinite" ${reverse ? 'keyPoints="1;0" keyTimes="0;1" calcMode="linear"' : ''} path="${path}"></animateMotion>
           </circle>` : ''}
       </g>`;
   }
@@ -192,7 +188,6 @@ class BoilerHeatFlowCard extends HTMLElement {
     const avg = this._avg([tankTop, tankMid, tankBottom]);
     const fillPercent = this._fillPercent(avg);
     const tankColor = this._heatColor(avg);
-
     const hpSupply = this._num(c.heatpump.supply_entity);
     const hpReturn = this._num(c.heatpump.return_entity);
     const hpMain = Number.isFinite(hpSupply) ? hpSupply : this._num(c.heatpump.entity);
@@ -200,22 +195,16 @@ class BoilerHeatFlowCard extends HTMLElement {
 
     const nodes = {
       collector: { value: this._fmtEntity(c.collector.entity), color: this._heatColor(this._num(c.collector.entity)), active: this._activeSource('collector', this._num(c.collector.entity), tankTop) },
-      hotwater: {
-        value: this._fmtEntity(c.hotwater.entity),
-        subvalue: Number.isFinite(hotwaterFlow) ? `${hotwaterFlow.toFixed(1)} ${c.hotwater.flow_unit || 'l/min'}` : '',
-        color: this._heatColor(this._num(c.hotwater.entity)),
-        active: this._activeSource('hotwater', this._num(c.hotwater.entity), tankTop)
-      },
+      hotwater: { value: this._fmtEntity(c.hotwater.entity), subvalue: Number.isFinite(hotwaterFlow) ? `${hotwaterFlow.toFixed(1)} ${c.hotwater.flow_unit || 'l/min'}` : '', color: this._heatColor(this._num(c.hotwater.entity)), active: this._activeSource('hotwater', this._num(c.hotwater.entity), tankTop) },
       fireplace: { value: this._fmtEntity(c.fireplace.entity), color: this._heatColor(this._num(c.fireplace.entity)), active: this._activeSource('fireplace', this._num(c.fireplace.entity), tankTop) },
-      heatpump: {
-        value: this._fmtNumber(hpMain),
-        subvalue: (Number.isFinite(hpSupply) || Number.isFinite(hpReturn)) ? `Aanvoer ${this._fmtNumber(hpSupply)} · Retour ${this._fmtNumber(hpReturn)}` : '',
-        color: this._heatColor(hpMain),
-        active: this._activeSource('heatpump', hpMain, tankTop)
-      },
+      heatpump: { value: this._fmtNumber(hpMain), subvalue: (Number.isFinite(hpSupply) || Number.isFinite(hpReturn)) ? `Aanvoer ${this._fmtNumber(hpSupply)} · Retour ${this._fmtNumber(hpReturn)}` : '', color: this._heatColor(hpMain), active: this._activeSource('heatpump', hpMain, tankTop) },
       floor: { value: this._fmtEntity(c.floor.entity), color: this._heatColor(this._num(c.floor.entity)), active: this._activeSource('floor', this._num(c.floor.entity), tankTop) },
       radiator: { value: this._fmtEntity(c.radiator.entity), color: this._heatColor(this._num(c.radiator.entity)), active: this._activeSource('radiator', this._num(c.radiator.entity), tankTop) },
     };
+
+    const width = c.card_width || '90%';
+    const height = c.card_height || '90%';
+    const centered = c.center_no_grid !== false;
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -223,100 +212,55 @@ class BoilerHeatFlowCard extends HTMLElement {
         ha-card {
           position:relative;
           overflow:hidden;
-          width:100%;
-          min-height:${c.fullscreen === false ? '560px' : '86vh'};
+          width:${width};
+          min-height:${c.min_height || '560px'};
+          height:${height};
+          margin:${centered ? '0 auto' : '0'};
           background: linear-gradient(180deg, rgba(14,24,42,0.98) 0%, rgba(5,11,22,0.99) 100%);
           border:1px solid rgba(162,188,233,0.12);
           border-radius:24px;
           box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 14px 44px rgba(0,0,0,0.32);
         }
-        .wrap { position:relative; width:100%; min-height:inherit; }
-        .title {
-          position:absolute; left:20px; top:16px; z-index:5;
-          font-size:clamp(24px, 2vw, 34px); font-weight:700; color:#f6f9ff;
-        }
-        .version {
-          position:absolute; right:18px; top:16px; z-index:5; width:38px; height:38px; border-radius:999px;
-          display:grid; place-items:center; background:rgba(255,255,255,0.04); color:#d6e3fb; border:1px solid rgba(255,255,255,0.08);
-          font-size:13px; font-weight:700;
-        }
+        .wrap { position:relative; width:100%; height:100%; min-height:inherit; }
+        .title { position:absolute; left:20px; top:16px; z-index:5; font-size:clamp(22px, 1.5vw, 30px); font-weight:700; color:#f6f9ff; }
+        .version { position:absolute; right:18px; top:16px; z-index:5; width:38px; height:38px; border-radius:999px; display:grid; place-items:center; background:rgba(255,255,255,0.04); color:#d6e3fb; border:1px solid rgba(255,255,255,0.08); font-size:13px; font-weight:700; }
         svg.flow { position:absolute; inset:0; width:100%; height:100%; z-index:1; }
-        .pipe-bg { fill:none; stroke:rgba(148, 169, 201, 0.18); stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
-        .pipe-active { fill:none; stroke:var(--c); stroke-width:1.25; stroke-linecap:round; stroke-linejoin:round; filter: drop-shadow(0 0 5px color-mix(in srgb, var(--c) 55%, transparent)); }
-        .flow-dot { fill:var(--c); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--c) 70%, transparent)); }
+        .pipe-bg { fill:none; stroke:rgba(148, 169, 201, 0.18); stroke-width:1.65; stroke-linecap:round; stroke-linejoin:round; }
+        .pipe-active { fill:none; stroke:var(--c); stroke-width:1.05; stroke-linecap:round; stroke-linejoin:round; filter: drop-shadow(0 0 3px color-mix(in srgb, var(--c) 45%, transparent)); }
+        .flow-dot { fill:var(--c); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--c) 60%, transparent)); }
 
-        .tank {
-          position:absolute; left:50%; top:50%; transform:translate(-50%, -50%);
-          width:220px; height:430px; z-index:3; cursor:pointer; border:0; background:none; padding:0;
-        }
-        .tank-shell {
-          position:absolute; inset:12px 18px;
-          border-radius:100px;
-          background:linear-gradient(180deg, #182741 0%, #0c1526 100%);
-          border:1px solid rgba(186,205,241,0.14);
-          box-shadow: inset 10px 0 20px rgba(255,255,255,0.03), inset -14px 0 24px rgba(0,0,0,0.28), 0 18px 36px rgba(0,0,0,0.22);
-          overflow:hidden;
-        }
-        .tank-shell::before {
-          content:""; position:absolute; left:15%; top:5%; width:14px; height:82%; border-radius:999px;
-          background:linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.01)); opacity:0.45;
-        }
-        .tank-shell::after {
-          content:""; position:absolute; inset:10px; border-radius:90px; border:1px solid rgba(255,255,255,0.05);
-        }
-        .tank-cap { position:absolute; left:50%; top:0; transform:translateX(-50%); width:120px; height:20px; border-radius:999px; background:linear-gradient(180deg, rgba(255,255,255,0.26), rgba(255,255,255,0.07)); }
+        .tank { position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); width:200px; height:392px; z-index:3; cursor:pointer; border:0; background:none; padding:0; }
+        .tank-shell { position:absolute; inset:12px 18px; border-radius:100px; background:linear-gradient(180deg, #182741 0%, #0c1526 100%); border:1px solid rgba(186,205,241,0.14); box-shadow: inset 10px 0 20px rgba(255,255,255,0.03), inset -14px 0 24px rgba(0,0,0,0.28), 0 18px 36px rgba(0,0,0,0.18); overflow:hidden; }
+        .tank-shell::before { content:""; position:absolute; left:14%; top:7%; width:10px; height:78%; border-radius:999px; background:linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.01)); opacity:0.4; }
+        .tank-shell::after { content:""; position:absolute; inset:10px; border-radius:90px; border:1px solid rgba(255,255,255,0.05); }
+        .tank-cap { position:absolute; left:50%; top:0; transform:translateX(-50%); width:110px; height:18px; border-radius:999px; background:linear-gradient(180deg, rgba(255,255,255,0.26), rgba(255,255,255,0.07)); }
         .tank-water {
           position:absolute; left:18px; right:18px; bottom:18px; height:${fillPercent}%;
           background:linear-gradient(180deg, color-mix(in srgb, ${tankColor} 88%, white 12%) 0%, color-mix(in srgb, ${tankColor} 78%, #10243c 22%) 100%);
-          border-radius:32px 32px 68px 68px;
-          box-shadow: inset 0 10px 14px rgba(255,255,255,0.08), inset 0 -16px 22px rgba(0,0,0,0.16);
+          border-radius:20px 20px 58px 58px;
+          box-shadow: inset 0 8px 12px rgba(255,255,255,0.06), inset 0 -8px 14px rgba(0,0,0,0.12);
           overflow:hidden;
         }
-        .tank-water::before {
-          content:""; position:absolute; left:12px; right:12px; top:-9px; height:18px; border-radius:999px;
-          background:linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0.04)); border:1px solid rgba(255,255,255,0.08);
-        }
-        .tank-water::after {
-          content:""; position:absolute; left:14%; right:14%; top:16%; height:28%; border-radius:999px;
-          background:linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.01));
-        }
+        .tank-water::before { content:""; position:absolute; left:14px; right:14px; top:-7px; height:14px; border-radius:999px; background:linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.03)); border:1px solid rgba(255,255,255,0.06); }
         .tank-content { position:absolute; inset:0; z-index:2; padding:26px 18px 18px; color:#f6f9ff; }
-        .tank-title { text-align:center; font-size:26px; font-weight:800; margin-top:4px; }
+        .tank-title { text-align:center; font-size:24px; font-weight:800; margin-top:4px; }
         .tank-sub { text-align:center; color:#d8e5fb; font-size:13px; margin-top:2px; }
-        .zones { display:grid; grid-template-rows:1fr 1fr 1fr; gap:14px; margin-top:22px; }
-        .zone {
-          display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-radius:18px;
-          background:linear-gradient(180deg, rgba(8,16,31,0.58), rgba(8,16,31,0.32)); border:1px solid rgba(255,255,255,0.07);
-        }
+        .zones { display:grid; grid-template-rows:1fr 1fr 1fr; gap:14px; margin-top:18px; }
+        .zone { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-radius:18px; background:linear-gradient(180deg, rgba(8,16,31,0.58), rgba(8,16,31,0.32)); border:1px solid rgba(255,255,255,0.07); }
         .zone .name { font-size:11px; letter-spacing:0.12em; color:#dbe7ff; font-weight:700; }
         .zone .val { font-size:15px; color:#fff; font-weight:800; }
-        .tempbar {
-          position:absolute; right:20px; top:106px; bottom:42px; width:8px; border-radius:999px;
-          background:linear-gradient(180deg, #ff675b 0%, #f3c05e 50%, #67cfff 100%); opacity:0.95;
-        }
+        .tempbar { position:absolute; right:20px; top:106px; bottom:42px; width:8px; border-radius:999px; background:linear-gradient(180deg, #ff675b 0%, #f3c05e 50%, #67cfff 100%); opacity:0.95; }
 
-        .node {
-          position:absolute; transform:translate(-50%,-50%); z-index:4; min-width:240px; max-width:280px; padding:16px;
-          display:flex; align-items:center; gap:14px; text-align:left; border-radius:24px; border:1px solid rgba(173,198,243,0.10);
-          background:linear-gradient(180deg, rgba(12,25,45,0.94), rgba(8,16,30,0.92)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 28px rgba(0,0,0,0.24);
-          cursor:pointer;
-        }
+        .node { position:absolute; transform:translate(-50%,-50%); z-index:4; min-width:220px; max-width:260px; padding:14px 16px; display:flex; align-items:center; gap:12px; text-align:left; border-radius:22px; border:1px solid rgba(173,198,243,0.10); background:linear-gradient(180deg, rgba(12,25,45,0.94), rgba(8,16,30,0.92)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 24px rgba(0,0,0,0.2); cursor:pointer; }
         .node.right { flex-direction:row-reverse; text-align:right; }
         .node.active { border-color: color-mix(in srgb, var(--accent) 35%, rgba(255,255,255,0.10)); }
-        .icon-wrap {
-          width:54px; height:54px; border-radius:18px; flex:0 0 54px; display:grid; place-items:center;
-          background:linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03)); border:1px solid rgba(255,255,255,0.06);
-          color:#dce9ff;
-        }
-        .icon-wrap ha-icon { width:26px; height:26px; }
+        .icon-wrap { width:50px; height:50px; border-radius:16px; flex:0 0 50px; display:grid; place-items:center; background:linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03)); border:1px solid rgba(255,255,255,0.06); color:#dce9ff; }
+        .icon-wrap ha-icon { width:24px; height:24px; }
         .label { color:#d7e6ff; font-size:14px; }
-        .value { color:#fff; font-weight:800; font-size:22px; margin-top:2px; }
+        .value { color:#fff; font-weight:800; font-size:20px; margin-top:2px; }
         .subvalue { color:#a9c0df; font-size:12px; margin-top:4px; }
 
-        .legend {
-          position:absolute; right:18px; bottom:16px; z-index:4; display:flex; align-items:center; gap:10px;
-          padding:10px 14px; border-radius:18px; border:1px solid rgba(255,255,255,0.08); background:rgba(10,18,35,0.84); color:#d9e6fb; font-size:14px;
-        }
+        .legend { position:absolute; right:18px; bottom:16px; z-index:4; display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:18px; border:1px solid rgba(255,255,255,0.08); background:rgba(10,18,35,0.84); color:#d9e6fb; font-size:14px; }
         .legend-dots { display:flex; gap:7px; align-items:center; }
         .legend-dots span { width:10px; height:10px; border-radius:999px; display:block; }
         .legend-dots span:nth-child(1) { background:#ff9958; }
@@ -324,21 +268,22 @@ class BoilerHeatFlowCard extends HTMLElement {
         .legend-dots span:nth-child(3) { background:#fff; width:18px; height:6px; }
 
         @media (max-width: 1100px) {
-          ha-card { min-height: 820px; }
-          .tank { width:205px; height:410px; }
-          .node { min-width:210px; max-width:240px; }
-          .node.collector { left:50% !important; top:11% !important; }
-          .node.hotwater { left:17% !important; top:28% !important; }
-          .node.fireplace { left:17% !important; top:49% !important; }
-          .node.heatpump { left:83% !important; top:49% !important; }
-          .node.floor { left:76% !important; top:77% !important; }
-          .node.radiator { left:24% !important; top:77% !important; }
+          ha-card { width:100%; min-height:640px; }
+          .tank { width:180px; height:360px; }
+          .node { min-width:186px; max-width:220px; }
+          .value { font-size:18px; }
+          .node.collector { left:50% !important; top:10% !important; }
+          .node.hotwater { left:18% !important; top:29% !important; }
+          .node.fireplace { left:18% !important; top:47% !important; }
+          .node.heatpump { left:82% !important; top:48% !important; }
+          .node.floor { left:78% !important; top:75% !important; }
+          .node.radiator { left:22% !important; top:75% !important; }
         }
       </style>
       <ha-card>
         <div class="wrap">
           <div class="title">${c.title || 'Warmtesysteem'}</div>
-          <div class="version">v5.6</div>
+          <div class="version">v5.7</div>
           <svg class="flow" viewBox="0 0 100 100" preserveAspectRatio="none">
             ${this._renderPipe('collector', nodes.collector.color, nodes.collector.active, '2.6s')}
             ${this._renderPipe('hotwater', nodes.hotwater.color, nodes.hotwater.active, '2.8s', true)}
@@ -350,17 +295,15 @@ class BoilerHeatFlowCard extends HTMLElement {
           </svg>
 
           ${this._renderNode({ cls:'collector', icon:c.collector.icon, label:c.collector.label, value:nodes.collector.value, color:nodes.collector.color, x:50, y:10, entity:c.collector.entity, active:nodes.collector.active })}
-          ${this._renderNode({ cls:'hotwater', icon:c.hotwater.icon, label:c.hotwater.label, value:nodes.hotwater.value, subvalue:nodes.hotwater.subvalue, color:nodes.hotwater.color, x:15, y:28, entity:c.hotwater.flow_entity || c.hotwater.entity, active:nodes.hotwater.active })}
-          ${this._renderNode({ cls:'fireplace', icon:c.fireplace.icon, label:c.fireplace.label, value:nodes.fireplace.value, color:nodes.fireplace.color, x:15, y:49, entity:c.fireplace.entity, active:nodes.fireplace.active })}
-          ${this._renderNode({ cls:'heatpump right', icon:c.heatpump.icon, label:c.heatpump.label, value:nodes.heatpump.value, subvalue:nodes.heatpump.subvalue, color:nodes.heatpump.color, x:85, y:49, align:'right', entity:c.heatpump.supply_entity || c.heatpump.entity, active:nodes.heatpump.active })}
-          ${this._renderNode({ cls:'floor right', icon:c.floor.icon, label:c.floor.label, value:nodes.floor.value, color:nodes.floor.color, x:78, y:76, align:'right', entity:c.floor.entity, active:nodes.floor.active })}
-          ${this._renderNode({ cls:'radiator', icon:c.radiator.icon, label:c.radiator.label, value:nodes.radiator.value, color:nodes.radiator.color, x:22, y:76, entity:c.radiator.entity, active:nodes.radiator.active })}
+          ${this._renderNode({ cls:'hotwater', icon:c.hotwater.icon, label:c.hotwater.label, value:nodes.hotwater.value, subvalue:nodes.hotwater.subvalue, color:nodes.hotwater.color, x:17, y:29, entity:c.hotwater.flow_entity || c.hotwater.entity, active:nodes.hotwater.active })}
+          ${this._renderNode({ cls:'fireplace', icon:c.fireplace.icon, label:c.fireplace.label, value:nodes.fireplace.value, color:nodes.fireplace.color, x:17, y:47, entity:c.fireplace.entity, active:nodes.fireplace.active })}
+          ${this._renderNode({ cls:'heatpump right', icon:c.heatpump.icon, label:c.heatpump.label, value:nodes.heatpump.value, subvalue:nodes.heatpump.subvalue, color:nodes.heatpump.color, x:83, y:48, align:'right', entity:c.heatpump.supply_entity || c.heatpump.entity, active:nodes.heatpump.active })}
+          ${this._renderNode({ cls:'floor right', icon:c.floor.icon, label:c.floor.label, value:nodes.floor.value, color:nodes.floor.color, x:78, y:74, align:'right', entity:c.floor.entity, active:nodes.floor.active })}
+          ${this._renderNode({ cls:'radiator', icon:c.radiator.icon, label:c.radiator.label, value:nodes.radiator.value, color:nodes.radiator.color, x:22, y:74, entity:c.radiator.entity, active:nodes.radiator.active })}
 
           <button class="tank" data-entity="${c.tank.top || c.tank.middle || c.tank.bottom || ''}">
             <div class="tank-cap"></div>
-            <div class="tank-shell">
-              <div class="tank-water"></div>
-            </div>
+            <div class="tank-shell"><div class="tank-water"></div></div>
             <div class="tank-content">
               <div class="tank-title">${c.tank.title || 'Boiler'}</div>
               <div class="tank-sub">Gemiddeld: ${Number.isFinite(avg) ? avg.toFixed(1) + ' °C' : '—'}</div>
@@ -406,7 +349,7 @@ class BoilerHeatFlowCardEditor extends HTMLElement {
 
   _set(path, value) {
     const parts = path.split('.');
-    const cfg = JSON.parse(JSON.stringify(this._config));
+    const cfg = JSON.parse(JSON.stringify(this._config || BoilerHeatFlowCard.getStubConfig()));
     let cur = cfg;
     for (let i = 0; i < parts.length - 1; i++) {
       cur[parts[i]] = cur[parts[i]] || {};
@@ -417,46 +360,45 @@ class BoilerHeatFlowCardEditor extends HTMLElement {
     this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: cfg }, bubbles: true, composed: true }));
   }
 
-  _entityRow(label, path, domains) {
-    return `<div class="field entity-row"><div class="caption">${label}</div><ha-entity-picker data-path="${path}" allow-custom-entity></ha-entity-picker></div>`;
+  _entities(domains=[]) {
+    if (!this._hass) return [];
+    const items = Object.keys(this._hass.states || {}).filter(eid => !domains.length || domains.includes(eid.split('.')[0]));
+    return items.sort((a,b) => a.localeCompare(b, undefined, {numeric:true}));
   }
+
+  _selectRow(label, path, domains=[]) {
+    const opts = ['<option value="">-- kies entity --</option>']
+      .concat(this._entities(domains).map(eid => `<option value="${eid}" ${this._value(path,'')===eid?'selected':''}>${eid}</option>`))
+      .join('');
+    return `<label class="field"><span class="caption">${label}</span><select data-path="${path}">${opts}</select></label>`;
+  }
+
   _textRow(label, path, type='text') {
-    return `<div class="field"><ha-textfield data-path="${path}" type="${type}" label="${label}"></ha-textfield></div>`;
+    const v = this._value(path, '');
+    return `<label class="field"><span class="caption">${label}</span><input data-path="${path}" type="${type}" value="${String(v).replace(/"/g,'&quot;')}"></label>`;
   }
-  _switchRow(label, path) {
-    return `<div class="switch-row"><ha-formfield label="${label}"><ha-switch data-path="${path}"></ha-switch></ha-formfield></div>`;
+
+  _checkboxRow(label, path) {
+    return `<label class="check"><input data-path="${path}" type="checkbox" ${this._value(path, false) ? 'checked' : ''}><span>${label}</span></label>`;
   }
+
   _section(title, inner) {
-    return `<div class="section"><div class="section-title">${title}</div><div class="grid">${inner}</div></div>`;
+    return `<section class="section"><h3>${title}</h3><div class="grid">${inner}</div></section>`;
   }
 
-  _bindElements() {
-    const pickers = this.shadowRoot.querySelectorAll('ha-entity-picker');
-    pickers.forEach((el) => {
-      const path = el.dataset.path;
-      const domains = (el.dataset.domains || '').split(',').filter(Boolean);
-      el.hass = this._hass;
-      el.value = this._value(path, '');
-      el.includeDomains = domains;
-      el.label = '';
-      el.addEventListener('value-changed', (ev) => this._set(path, ev.detail.value || ''));
+  _bind() {
+    this.shadowRoot.querySelectorAll('select').forEach(el => {
+      el.addEventListener('change', e => this._set(el.dataset.path, e.target.value || ''));
     });
-
-    this.shadowRoot.querySelectorAll('ha-textfield').forEach((el) => {
-      const path = el.dataset.path;
-      const type = el.getAttribute('type') || 'text';
-      el.value = this._value(path, '');
-      el.addEventListener('change', (ev) => {
-        let value = ev.target.value;
-        if (type === 'number') value = value === '' ? '' : Number(value);
-        this._set(path, value);
+    this.shadowRoot.querySelectorAll('input[type="text"], input[type="number"]').forEach(el => {
+      el.addEventListener('change', e => {
+        let value = e.target.value;
+        if (e.target.type === 'number') value = value === '' ? '' : Number(value);
+        this._set(el.dataset.path, value);
       });
     });
-
-    this.shadowRoot.querySelectorAll('ha-switch').forEach((el) => {
-      const path = el.dataset.path;
-      el.checked = !!this._value(path, false);
-      el.addEventListener('change', (ev) => this._set(path, !!ev.target.checked));
+    this.shadowRoot.querySelectorAll('input[type="checkbox"]').forEach(el => {
+      el.addEventListener('change', e => this._set(el.dataset.path, !!e.target.checked));
     });
   }
 
@@ -468,66 +410,71 @@ class BoilerHeatFlowCardEditor extends HTMLElement {
         * { box-sizing:border-box; }
         .editor { display:grid; gap:14px; }
         .section { border:1px solid var(--divider-color); border-radius:16px; padding:14px; background:var(--card-background-color); }
-        .section-title { font-weight:700; margin-bottom:12px; }
+        h3 { margin:0 0 12px 0; font-size:16px; }
         .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
-        .field, .switch-row { display:block; }
-        .caption { font-size:12px; color:var(--secondary-text-color); margin-bottom:6px; }
-        ha-textfield, ha-entity-picker { width:100%; }
-        .wide { grid-column:1/-1; }
+        .field, .check { display:flex; flex-direction:column; gap:6px; }
+        .caption { font-size:12px; color:var(--secondary-text-color); }
+        select, input[type="text"], input[type="number"] {
+          width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--divider-color);
+          background:var(--secondary-background-color); color:var(--primary-text-color);
+        }
+        .check { flex-direction:row; align-items:center; gap:10px; padding-top:24px; }
         @media (max-width: 720px) { .grid { grid-template-columns:1fr; } }
       </style>
       <div class="editor">
         ${this._section('Algemeen', `
           ${this._textRow('Titel', 'title')}
-          ${this._switchRow('Fullscreen hoogte', 'fullscreen')}
-          ${this._switchRow('Animaties', 'animations')}
-          ${this._switchRow('Legenda tonen', 'show_legend')}
+          ${this._textRow('Card width', 'card_width')}
+          ${this._textRow('Card height', 'card_height')}
+          ${this._checkboxRow('Center no grid', 'center_no_grid')}
+          ${this._checkboxRow('Animaties', 'animations')}
+          ${this._checkboxRow('Legenda tonen', 'show_legend')}
         `)}
         ${this._section('Boiler', `
           ${this._textRow('Titel', 'tank.title')}
-          <div class="field entity-row"><div class="caption">Boven sensor</div><ha-entity-picker data-path="tank.top" data-domains="sensor"></ha-entity-picker></div>
-          <div class="field entity-row"><div class="caption">Midden sensor</div><ha-entity-picker data-path="tank.middle" data-domains="sensor"></ha-entity-picker></div>
-          <div class="field entity-row"><div class="caption">Onder sensor</div><ha-entity-picker data-path="tank.bottom" data-domains="sensor"></ha-entity-picker></div>
+          ${this._selectRow('Boven sensor', 'tank.top', ['sensor'])}
+          ${this._selectRow('Midden sensor', 'tank.middle', ['sensor'])}
+          ${this._selectRow('Onder sensor', 'tank.bottom', ['sensor'])}
         `)}
         ${this._section('Zonnecollector', `
           ${this._textRow('Label', 'collector.label')}
           ${this._textRow('Icon', 'collector.icon')}
-          <div class="field entity-row"><div class="caption">Temperatuur sensor</div><ha-entity-picker data-path="collector.entity" data-domains="sensor"></ha-entity-picker></div>
-          <div class="field entity-row"><div class="caption">Pomp binary sensor</div><ha-entity-picker data-path="collector.pump" data-domains="binary_sensor"></ha-entity-picker></div>
+          ${this._selectRow('Temperatuur sensor', 'collector.entity', ['sensor'])}
+          ${this._selectRow('Pomp binary sensor', 'collector.pump', ['binary_sensor'])}
         `)}
         ${this._section('Tapwater', `
           ${this._textRow('Label', 'hotwater.label')}
           ${this._textRow('Icon', 'hotwater.icon')}
-          <div class="field entity-row"><div class="caption">Temperatuur sensor</div><ha-entity-picker data-path="hotwater.entity" data-domains="sensor"></ha-entity-picker></div>
-          <div class="field entity-row"><div class="caption">Actief binary sensor</div><ha-entity-picker data-path="hotwater.active" data-domains="binary_sensor"></ha-entity-picker></div>
-          <div class="field entity-row"><div class="caption">Flow sensor (optioneel)</div><ha-entity-picker data-path="hotwater.flow_entity" data-domains="sensor"></ha-entity-picker></div>
+          ${this._selectRow('Temperatuur sensor', 'hotwater.entity', ['sensor'])}
+          ${this._selectRow('Actief binary sensor', 'hotwater.active', ['binary_sensor'])}
+          ${this._selectRow('Flow sensor (optioneel)', 'hotwater.flow_entity', ['sensor'])}
           ${this._textRow('Flow eenheid', 'hotwater.flow_unit')}
         `)}
         ${this._section('Openhaard', `
           ${this._textRow('Label', 'fireplace.label')}
           ${this._textRow('Icon', 'fireplace.icon')}
-          <div class="field entity-row"><div class="caption">Temperatuur sensor</div><ha-entity-picker data-path="fireplace.entity" data-domains="sensor"></ha-entity-picker></div>
-          <div class="field entity-row"><div class="caption">Actief binary sensor</div><ha-entity-picker data-path="fireplace.active" data-domains="binary_sensor"></ha-entity-picker></div>
+          ${this._selectRow('Temperatuur sensor', 'fireplace.entity', ['sensor'])}
+          ${this._selectRow('Actief binary sensor', 'fireplace.active', ['binary_sensor'])}
         `)}
         ${this._section('Warmtepomp', `
           ${this._textRow('Label', 'heatpump.label')}
           ${this._textRow('Icon', 'heatpump.icon')}
-          <div class="field entity-row"><div class="caption">Hoofd temperatuursensor</div><ha-entity-picker data-path="heatpump.entity" data-domains="sensor"></ha-entity-picker></div>
-          <div class="field entity-row"><div class="caption">Aanvoer sensor</div><ha-entity-picker data-path="heatpump.supply_entity" data-domains="sensor"></ha-entity-picker></div>
-          <div class="field entity-row"><div class="caption">Retour sensor</div><ha-entity-picker data-path="heatpump.return_entity" data-domains="sensor"></ha-entity-picker></div>
-          <div class="field entity-row"><div class="caption">Actief binary sensor</div><ha-entity-picker data-path="heatpump.active" data-domains="binary_sensor"></ha-entity-picker></div>
+          ${this._selectRow('Hoofd temperatuursensor', 'heatpump.entity', ['sensor'])}
+          ${this._selectRow('Aanvoer sensor', 'heatpump.supply_entity', ['sensor'])}
+          ${this._selectRow('Retour sensor', 'heatpump.return_entity', ['sensor'])}
+          ${this._selectRow('Actief binary sensor', 'heatpump.active', ['binary_sensor'])}
         `)}
         ${this._section('Vloerverwarming', `
           ${this._textRow('Label', 'floor.label')}
           ${this._textRow('Icon', 'floor.icon')}
-          <div class="field entity-row"><div class="caption">Temperatuur sensor</div><ha-entity-picker data-path="floor.entity" data-domains="sensor"></ha-entity-picker></div>
-          <div class="field entity-row"><div class="caption">Actief binary sensor</div><ha-entity-picker data-path="floor.active" data-domains="binary_sensor"></ha-entity-picker></div>
+          ${this._selectRow('Temperatuur sensor', 'floor.entity', ['sensor'])}
+          ${this._selectRow('Actief binary sensor', 'floor.active', ['binary_sensor'])}
         `)}
         ${this._section('Radiatoren', `
           ${this._textRow('Label', 'radiator.label')}
           ${this._textRow('Icon', 'radiator.icon')}
-          <div class="field entity-row"><div class="caption">Temperatuur sensor</div><ha-entity-picker data-path="radiator.entity" data-domains="sensor"></ha-entity-picker></div>
-          <div class="field entity-row"><div class="caption">Actief binary sensor</div><ha-entity-picker data-path="radiator.active" data-domains="binary_sensor"></ha-entity-picker></div>
+          ${this._selectRow('Temperatuur sensor', 'radiator.entity', ['sensor'])}
+          ${this._selectRow('Actief binary sensor', 'radiator.active', ['binary_sensor'])}
         `)}
         ${this._section('Thresholds', `
           ${this._textRow('Collector delta', 'thresholds.collector_delta', 'number')}
@@ -539,7 +486,7 @@ class BoilerHeatFlowCardEditor extends HTMLElement {
         `)}
       </div>
     `;
-    this._bindElements();
+    this._bind();
   }
 }
 
