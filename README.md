@@ -1,4 +1,4 @@
-# Boiler Heat Flow Card
+# Boiler Heat Flow Card v3
 
 Custom Home Assistant Lovelace card for thermal flows between:
 
@@ -6,43 +6,59 @@ Custom Home Assistant Lovelace card for thermal flows between:
 - Boiler / buffer tank
 - Fireplace
 - Heat pump
-- Heating circuit
 - Hot water
+- Floor heating
+- Radiators
 
-## Features
+## What changed in v3
 
-- Animated heat-flow lines
-- Boiler tank in the center with top / middle / bottom temperatures
-- Visual editor in the dashboard UI
-- Manual install or HACS custom repository install
-- Click any node for more-info
+- Fixed HACS resource path by shipping the main JS file in the repo root
+- Keeps a copy in `dist/` for manual installs and releases
+- Visual config editor in Home Assistant
+- Separate support for **floor heating** and **radiators**
+- Legacy single `heating:` section still supported
+- Boiler now shows an average temperature line and visual fill level
+- Legend can be turned on or off
 
-## Install with HACS
+## HACS install
 
-1. Open **HACS**.
-2. Go to **Frontend**.
-3. Add this repository as a **Custom repository**.
-4. Choose category **Dashboard**.
-5. Install **Boiler Heat Flow Card**.
-6. Refresh the browser.
+1. Add this repo as a **Custom repository** in HACS
+2. Type: **Dashboard**
+3. Install **Boiler Heat Flow Card**
+4. Refresh the browser
+
+HACS should load:
+
+```text
+/hacsfiles/boiler-heat-flow-card/boiler-heat-flow-card.js
+```
 
 ## Manual install
 
-1. Copy `dist/boiler-heat-flow-card.js` to:
+Copy one of these files to your HA `www` folder:
 
-   `/config/www/boiler-heat-flow-card.js`
+- `boiler-heat-flow-card.js`
+- `dist/boiler-heat-flow-card.js`
 
-2. Add resource:
+Then add a resource:
 
-   - URL: `/local/boiler-heat-flow-card.js`
-   - Type: `module`
+```text
+/local/boiler-heat-flow-card.js
+```
 
-## Example YAML
+Type:
+
+```text
+module
+```
+
+## Example YAML with separate floor and radiators
 
 ```yaml
 type: custom:boiler-heat-flow-card
 title: Warmtesysteem
 animations: true
+show_legend: true
 
 tank:
   title: Boiler
@@ -74,30 +90,65 @@ heatpump:
   label: Warmtepomp
   icon: mdi:heat-pump
 
-heating:
-  entity: sensor.verwarming_temp
-  active: binary_sensor.verwarming_actief
-  label: Vloer/Radiator
+floor:
+  entity: sensor.vloerverwarming_temp
+  active: binary_sensor.vloerverwarming_actief
+  label: Vloerverwarming
+  icon: mdi:heating-coil
+
+radiator:
+  entity: sensor.radiator_temp
+  active: binary_sensor.radiator_actief
+  label: Radiatoren
   icon: mdi:radiator
 
 thresholds:
   collector_delta: 5
   fireplace_temp: 45
   heatpump_temp: 30
-  heating_temp: 25
   hotwater_temp: 30
+  floor_temp: 25
+  radiator_temp: 30
 ```
 
-## Notes
+## Example YAML with legacy heating only
 
-- `collector.pump` is optional.
-- Any `active` entity is optional.
-- If no active entity is configured, the card falls back to threshold-based logic.
+```yaml
+type: custom:boiler-heat-flow-card
+title: Warmtesysteem
 
-## HACS repository layout
+tank:
+  title: Boiler
+  top: sensor.boiler_boven
+  middle: sensor.boiler_midden
+  bottom: sensor.boiler_onder
 
-This repository is ready to publish as a custom frontend repository:
+collector:
+  entity: sensor.collector_temp
+  pump: binary_sensor.collector_pomp
 
-- `hacs.json`
+hotwater:
+  entity: sensor.tapwater_temp
+  active: binary_sensor.tapwater_actief
+
+fireplace:
+  entity: sensor.openhaard_temp
+  active: binary_sensor.openhaard_actief
+
+heatpump:
+  entity: sensor.warmtepomp_temp
+  active: binary_sensor.warmtepomp_actief
+
+heating:
+  entity: sensor.verwarming_temp
+  active: binary_sensor.verwarming_actief
+  label: Vloer/Radiator
+  icon: mdi:radiator
+```
+
+## Repo layout
+
+- `boiler-heat-flow-card.js`
 - `dist/boiler-heat-flow-card.js`
+- `hacs.json`
 - `README.md`
