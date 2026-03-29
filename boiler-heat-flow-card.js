@@ -11,8 +11,8 @@ class BoilerHeatFlowCard extends HTMLElement {
       animations: true,
       show_legend: true,
       center_no_grid: false,
-      card_height: '90%',
-      card_width: '90%',
+      card_height: '560px',
+      card_width: '100%',
       min_height: '560px',
       tank: { title: 'Boiler', top: '', middle: '', bottom: '' },
       collector: { entity: '', pump: '', label: 'Zonnecollector', icon: 'mdi:white-balance-sunny' },
@@ -32,8 +32,7 @@ class BoilerHeatFlowCard extends HTMLElement {
   }
 
   setConfig(config) {
-    if (!config.tank) throw new Error('tank is vereist');
-    this._config = this._mergeConfig(config);
+    this._config = this._mergeConfig(config || {});
     if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
     this.render();
   }
@@ -202,8 +201,8 @@ class BoilerHeatFlowCard extends HTMLElement {
       radiator: { value: this._fmtEntity(c.radiator.entity), color: this._heatColor(this._num(c.radiator.entity)), active: this._activeSource('radiator', this._num(c.radiator.entity), tankTop) },
     };
 
-    const width = c.card_width || '90%';
-    const height = c.card_height || '90%';
+    const width = c.card_width || '100%';
+    const height = c.card_height || '560px';
     const centered = c.center_no_grid !== false;
 
     this.shadowRoot.innerHTML = `
@@ -215,6 +214,7 @@ class BoilerHeatFlowCard extends HTMLElement {
           width:${width};
           min-height:${c.min_height || '560px'};
           height:${height};
+          max-width:100%;
           margin:${centered ? '0 auto' : '0'};
           background: linear-gradient(180deg, rgba(14,24,42,0.98) 0%, rgba(5,11,22,0.99) 100%);
           border:1px solid rgba(162,188,233,0.12);
@@ -237,7 +237,7 @@ class BoilerHeatFlowCard extends HTMLElement {
         .tank-water {
           position:absolute; left:18px; right:18px; bottom:18px; height:${fillPercent}%;
           background:linear-gradient(180deg, color-mix(in srgb, ${tankColor} 88%, white 12%) 0%, color-mix(in srgb, ${tankColor} 78%, #10243c 22%) 100%);
-          border-radius:20px 20px 58px 58px;
+          border-radius:18px 18px 34px 34px;
           box-shadow: inset 0 8px 12px rgba(255,255,255,0.06), inset 0 -8px 14px rgba(0,0,0,0.12);
           overflow:hidden;
         }
@@ -283,7 +283,7 @@ class BoilerHeatFlowCard extends HTMLElement {
       <ha-card>
         <div class="wrap">
           <div class="title">${c.title || 'Warmtesysteem'}</div>
-          <div class="version">v5.7</div>
+          <div class="version">v5.8</div>
           <svg class="flow" viewBox="0 0 100 100" preserveAspectRatio="none">
             ${this._renderPipe('collector', nodes.collector.color, nodes.collector.active, '2.6s')}
             ${this._renderPipe('hotwater', nodes.hotwater.color, nodes.hotwater.active, '2.8s', true)}
@@ -331,10 +331,26 @@ class BoilerHeatFlowCard extends HTMLElement {
   }
 }
 
+
 class BoilerHeatFlowCardEditor extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+
   setConfig(config) {
-    this._config = JSON.parse(JSON.stringify(config || BoilerHeatFlowCard.getStubConfig()));
-    if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
+    this._config = JSON.parse(JSON.stringify(BoilerHeatFlowCard.getStubConfig()));
+    const merge = (dst, src) => {
+      for (const [k, v] of Object.entries(src || {})) {
+        if (v && typeof v === 'object' && !Array.isArray(v)) {
+          dst[k] = dst[k] || {};
+          merge(dst[k], v);
+        } else {
+          dst[k] = v;
+        }
+      }
+    };
+    merge(this._config, config || {});
     this._render();
   }
 
@@ -348,8 +364,8 @@ class BoilerHeatFlowCardEditor extends HTMLElement {
   }
 
   _set(path, value) {
-    const parts = path.split('.');
     const cfg = JSON.parse(JSON.stringify(this._config || BoilerHeatFlowCard.getStubConfig()));
+    const parts = path.split('.');
     let cur = cfg;
     for (let i = 0; i < parts.length - 1; i++) {
       cur[parts[i]] = cur[parts[i]] || {};
@@ -357,25 +373,31 @@ class BoilerHeatFlowCardEditor extends HTMLElement {
     }
     cur[parts[parts.length - 1]] = value;
     this._config = cfg;
-    this.dispatchEvent(new CustomEvent('config-changed', { detail: { config: cfg }, bubbles: true, composed: true }));
+    this.dispatchEvent(new CustomEvent('config-changed', {
+      detail: { config: cfg }, bubbles: true, composed: true,
+    }));
   }
 
   _entities(domains=[]) {
-    if (!this._hass) return [];
-    const items = Object.keys(this._hass.states || {}).filter(eid => !domains.length || domains.includes(eid.split('.')[0]));
-    return items.sort((a,b) => a.localeCompare(b, undefined, {numeric:true}));
+    const states = this._hass?.states || {};
+    return Object.keys(states)
+      .filter((eid) => !domains.length || domains.includes(eid.split('.')[0]))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }
+
+  _opt(eid, selected) {
+    return `<option value="${eid}" ${selected === eid ? 'selected' : ''}>${eid}</option>`;
   }
 
   _selectRow(label, path, domains=[]) {
-    const opts = ['<option value="">-- kies entity --</option>']
-      .concat(this._entities(domains).map(eid => `<option value="${eid}" ${this._value(path,'')===eid?'selected':''}>${eid}</option>`))
-      .join('');
-    return `<label class="field"><span class="caption">${label}</span><select data-path="${path}">${opts}</select></label>`;
+    const current = this._value(path, '');
+    const options = ['<option value="">-- kies entity --</option>', ...this._entities(domains).map((eid) => this._opt(eid, current))].join('');
+    return `<label class="field"><span class="caption">${label}</span><select data-path="${path}">${options}</select></label>`;
   }
 
-  _textRow(label, path, type='text') {
+  _textRow(label, path, type='text', placeholder='') {
     const v = this._value(path, '');
-    return `<label class="field"><span class="caption">${label}</span><input data-path="${path}" type="${type}" value="${String(v).replace(/"/g,'&quot;')}"></label>`;
+    return `<label class="field"><span class="caption">${label}</span><input data-path="${path}" type="${type}" placeholder="${placeholder}" value="${String(v).replace(/"/g,'&quot;')}"></label>`;
   }
 
   _checkboxRow(label, path) {
@@ -383,49 +405,53 @@ class BoilerHeatFlowCardEditor extends HTMLElement {
   }
 
   _section(title, inner) {
-    return `<section class="section"><h3>${title}</h3><div class="grid">${inner}</div></section>`;
+    return `<details class="section" open><summary>${title}</summary><div class="grid">${inner}</div></details>`;
   }
 
   _bind() {
-    this.shadowRoot.querySelectorAll('select').forEach(el => {
-      el.addEventListener('change', e => this._set(el.dataset.path, e.target.value || ''));
+    this.shadowRoot.querySelectorAll('select').forEach((el) => {
+      el.addEventListener('change', (e) => this._set(el.dataset.path, e.target.value || ''));
     });
-    this.shadowRoot.querySelectorAll('input[type="text"], input[type="number"]').forEach(el => {
-      el.addEventListener('change', e => {
+    this.shadowRoot.querySelectorAll('input[type="text"], input[type="number"]').forEach((el) => {
+      const handler = (e) => {
         let value = e.target.value;
         if (e.target.type === 'number') value = value === '' ? '' : Number(value);
         this._set(el.dataset.path, value);
-      });
+      };
+      el.addEventListener('change', handler);
+      el.addEventListener('blur', handler);
     });
-    this.shadowRoot.querySelectorAll('input[type="checkbox"]').forEach(el => {
-      el.addEventListener('change', e => this._set(el.dataset.path, !!e.target.checked));
+    this.shadowRoot.querySelectorAll('input[type="checkbox"]').forEach((el) => {
+      el.addEventListener('change', (e) => this._set(el.dataset.path, !!e.target.checked));
     });
   }
 
   _render() {
-    if (!this.shadowRoot) return;
+    if (!this.shadowRoot || !this._config) return;
     this.shadowRoot.innerHTML = `
       <style>
-        :host { display:block; padding:12px 0; }
+        :host { display:block; color:var(--primary-text-color); }
         * { box-sizing:border-box; }
-        .editor { display:grid; gap:14px; }
-        .section { border:1px solid var(--divider-color); border-radius:16px; padding:14px; background:var(--card-background-color); }
-        h3 { margin:0 0 12px 0; font-size:16px; }
-        .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
-        .field, .check { display:flex; flex-direction:column; gap:6px; }
+        .editor { display:grid; gap:12px; padding:8px 0 16px; }
+        .section { border:1px solid var(--divider-color); border-radius:14px; background:var(--card-background-color); overflow:hidden; }
+        .section summary { list-style:none; cursor:pointer; padding:14px 16px; font-weight:700; }
+        .section summary::-webkit-details-marker { display:none; }
+        .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:0 16px 16px; }
+        .field { display:flex; flex-direction:column; gap:6px; min-width:0; }
         .caption { font-size:12px; color:var(--secondary-text-color); }
         select, input[type="text"], input[type="number"] {
           width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--divider-color);
-          background:var(--secondary-background-color); color:var(--primary-text-color);
+          background:var(--secondary-background-color); color:var(--primary-text-color); min-height:42px;
         }
-        .check { flex-direction:row; align-items:center; gap:10px; padding-top:24px; }
+        .check { display:flex; align-items:center; gap:10px; min-height:42px; padding-top:22px; }
+        .hint { padding:0 16px 16px; color:var(--secondary-text-color); font-size:12px; }
         @media (max-width: 720px) { .grid { grid-template-columns:1fr; } }
       </style>
       <div class="editor">
         ${this._section('Algemeen', `
           ${this._textRow('Titel', 'title')}
-          ${this._textRow('Card width', 'card_width')}
-          ${this._textRow('Card height', 'card_height')}
+          ${this._textRow('Card width', 'card_width', 'text', 'bijv. 100%, 90%, 1200px')}
+          ${this._textRow('Card height', 'card_height', 'text', 'bijv. 560px, 70vh')}
           ${this._checkboxRow('Center no grid', 'center_no_grid')}
           ${this._checkboxRow('Animaties', 'animations')}
           ${this._checkboxRow('Legenda tonen', 'show_legend')}
@@ -484,6 +510,7 @@ class BoilerHeatFlowCardEditor extends HTMLElement {
           ${this._textRow('Vloerverwarming temp', 'thresholds.floor_temp', 'number')}
           ${this._textRow('Radiator temp', 'thresholds.radiator_temp', 'number')}
         `)}
+        <div class="hint">Tip: laat card width op 100% en gebruik voor card height liever een vaste hoogte zoals 560px of 620px.</div>
       </div>
     `;
     this._bind();

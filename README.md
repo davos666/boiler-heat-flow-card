@@ -1,6 +1,6 @@
 # Boiler Heat Flow Card
 
-v5.7
+v5.8
 
 ## Nieuw
 - `center_no_grid`, `card_height`, `card_width`
