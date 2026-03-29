@@ -1,6 +1,6 @@
 # Boiler Heat Flow Card
 
-v5.8
+v6.0
 
 ## Nieuw
 - `center_no_grid`, `card_height`, `card_width`
@@ -73,3 +73,10 @@ thresholds:
   floor_temp: 25
   radiator_temp: 30
 ```
+
+
+## v6.0
+
+- Fixed visual config editor registration
+- Stable simple editor with standard dropdowns and inputs
+- YAML config remains supported

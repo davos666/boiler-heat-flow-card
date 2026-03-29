@@ -283,7 +283,7 @@ class BoilerHeatFlowCard extends HTMLElement {
       <ha-card>
         <div class="wrap">
           <div class="title">${c.title || 'Warmtesysteem'}</div>
-          <div class="version">v5.8</div>
+          <div class="version">v6.0</div>
           <svg class="flow" viewBox="0 0 100 100" preserveAspectRatio="none">
             ${this._renderPipe('collector', nodes.collector.color, nodes.collector.active, '2.6s')}
             ${this._renderPipe('hotwater', nodes.hotwater.color, nodes.hotwater.active, '2.8s', true)}
