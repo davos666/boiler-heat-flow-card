@@ -1,10 +1,10 @@
-# Boiler Heat Flow Card
+# Boiler Heat Flow Card v1.1.7
 
-## v1.1.6
+## Changes
 
-- Connected lines to nodes and boiler
-- Grey lines when inactive
-- Orange supply and blue return when active
-- Dots only visible when active
-- YAML-only
-- HACS-ready
+- Scalable layout for different `card_height` values
+- Nodes and SVG lines use matching proportions
+- Smoother curved paths to reduce dot jitter
+- Dots fade in/out at loop boundaries for cleaner motion
+- Grey when inactive, orange/blue when active
+- YAML-only and HACS-ready
