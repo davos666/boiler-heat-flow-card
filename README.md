@@ -20,11 +20,12 @@ Resource:
 /hacsfiles/boiler-heat-flow-card/boiler-heat-flow-card.js
 ```
 
-## Nieuw in v5
+## Nieuw in v5.2
 
 - strakkere boiler SVG
 - geanimeerde flow-deeltjes op de leidingen
 - warmtepomp aanvoer + retour
+- aparte aanvoer- en retourlijnen in de layout
 - `ha-form` config editor met klikbare entity selectors
 - root-bestand voor nette HACS updates
 
@@ -92,3 +93,16 @@ thresholds:
   floor_temp: 25
   radiator_temp: 30
 ```
+
+
+## Updates via Home Assistant
+
+Als de kaart via HACS is geïnstalleerd en je op GitHub een nieuwe release/tag publiceert, verschijnt de update ook onder **Instellingen > Updates** en kun je die daar installeren.
+
+
+## v5.2
+
+- Strakkere Sunsynk-achtige styling
+- Boiler-artefacts rond het vat verminderd
+- Minder agressieve glow en blur op leidingen
+- Scherpere nodes en rustiger achtergrond

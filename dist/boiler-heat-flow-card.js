@@ -235,6 +235,26 @@ class BoilerHeatFlowCard extends HTMLElement {
     const fireplaceActive = this._activeSection('fireplace', 'fireplace_temp');
     const heatpumpActive = this._activeSection('heatpump', 'heatpump_temp');
     const rightNodes = this._rightSideConfig();
+    const hasHeatpumpReturn = Boolean(this._config.heatpump.return);
+    const hpPipeHtml = hasHeatpumpReturn ? `
+            <path id="pipe-heatpump-supply" class="pipe-bg" d="M77 50 L64 50 Q58 50 58 46 L58 42" />
+            <path class="pipe-glow pipe-green" d="M77 50 L64 50 Q58 50 58 46 L58 42" />
+            <path class="pipe-active pipe-green ${heatpumpActive && this._config.animations ? 'on' : ''}" d="M77 50 L64 50 Q58 50 58 46 L58 42" />
+            ${this._particle('pipe-heatpump-supply', '#8ce38a', '1.65s', heatpumpActive, false, '0s')}
+            ${this._particle('pipe-heatpump-supply', '#8ce38a', '1.65s', heatpumpActive, false, '0.82s')}
+
+            <path id="pipe-heatpump-return" class="pipe-bg" d="M58 63 L58 68 Q58 72 64 72 L77 72" />
+            <path class="pipe-glow pipe-blue" d="M58 63 L58 68 Q58 72 64 72 L77 72" />
+            <path class="pipe-active pipe-blue ${heatpumpActive && this._config.animations ? 'on' : ''}" d="M58 63 L58 68 Q58 72 64 72 L77 72" />
+            ${this._particle('pipe-heatpump-return', '#5bc0ff', '1.85s', heatpumpActive, true, '0.2s')}
+            ${this._particle('pipe-heatpump-return', '#5bc0ff', '1.85s', heatpumpActive, true, '1.05s')}
+    ` : `
+            <path id="pipe-heatpump" class="pipe-bg" d="M77 54 L62 54 Q56 54 56 49 L56 46" />
+            <path class="pipe-glow pipe-green" d="M77 54 L62 54 Q56 54 56 49 L56 46" />
+            <path class="pipe-active pipe-green ${heatpumpActive && this._config.animations ? 'on' : ''}" d="M77 54 L62 54 Q56 54 56 49 L56 46" />
+            ${this._particle('pipe-heatpump', '#8ce38a', '1.7s', heatpumpActive, false, '0s')}
+            ${this._particle('pipe-heatpump', '#8ce38a', '1.7s', heatpumpActive, false, '0.85s')}
+    `;
 
     const hpValue = this._config.heatpump.supply ? this._formatValue(this._config.heatpump.supply) : this._formatValue(this._config.heatpump.entity);
     const rightNodeHtml = rightNodes.map((n) => this._nodeTemplate(n.key, this._config[n.key], n.x, n.y, n.active)).join('');
@@ -257,55 +277,67 @@ class BoilerHeatFlowCard extends HTMLElement {
           border-radius: 28px;
           color: #edf4ff;
           background:
-            radial-gradient(circle at 14% 12%, rgba(92,142,255,0.18), transparent 22%),
-            radial-gradient(circle at 86% 10%, rgba(255,168,76,0.10), transparent 28%),
-            linear-gradient(180deg, #0e1520 0%, #101a28 52%, #0b1019 100%);
-          border: 1px solid rgba(255,255,255,0.06);
-          box-shadow: 0 20px 50px rgba(0,0,0,0.28);
+            linear-gradient(180deg, #09111c 0%, #0d1624 52%, #08101a 100%);
+          border: 1px solid rgba(181, 209, 255, 0.08);
+          box-shadow: 0 18px 40px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.03);
+        }
+        ha-card::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(circle at 50% 44%, rgba(66, 120, 210, 0.08), transparent 22%),
+            linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.018) 48%, transparent 100%);
+          pointer-events: none;
         }
         .wrap { position:relative; height:620px; padding: 12px; }
         .title {
           position:absolute; left:20px; top:14px; z-index:3;
           font-size: 24px; font-weight: 800; letter-spacing: .02em;
+          text-shadow: 0 2px 10px rgba(0,0,0,0.35);
         }
         .version {
           position:absolute; right:18px; top:16px; z-index:3;
           padding: 6px 10px; border-radius: 999px; font-size:12px; color:#b7c7e4;
-          background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
         }
         svg.flow { position:absolute; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; overflow:visible; }
         .pipe-bg {
-          fill:none; stroke: rgba(151,172,213,0.14); stroke-width:10; stroke-linecap:round; stroke-linejoin:round;
+          fill:none; stroke: rgba(160,184,220,0.12); stroke-width:8; stroke-linecap:round; stroke-linejoin:round;
         }
         .pipe-glow {
-          fill:none; stroke-width:18; stroke-linecap:round; stroke-linejoin:round; opacity:.18; filter: blur(8px);
+          fill:none; stroke-width:10; stroke-linecap:round; stroke-linejoin:round; opacity:.08; filter: blur(2px);
         }
         .pipe-active {
-          fill:none; stroke-width:6; stroke-linecap:round; stroke-linejoin:round; opacity:0;
-          stroke-dasharray: 8 12;
-          filter: drop-shadow(0 0 6px rgba(255,255,255,0.18));
+          fill:none; stroke-width:4; stroke-linecap:round; stroke-linejoin:round; opacity:0;
+          stroke-dasharray: 6 10;
+          filter: drop-shadow(0 0 4px rgba(255,255,255,0.12));
         }
-        .pipe-active.on { opacity:1; animation: flow 1.15s linear infinite; }
+        .pipe-active.on { opacity:1; animation: flow 1.25s linear infinite; }
         .pipe-hot { stroke: #ffb14f; }
-        .pipe-red { stroke: #ff6f61; }
-        .pipe-blue { stroke: #5bc0ff; }
+        .pipe-red { stroke: #ff7d61; }
+        .pipe-blue { stroke: #67c8ff; }
         .pipe-green { stroke: #8ce38a; }
-        @keyframes flow { to { stroke-dashoffset: -40; } }
+        @keyframes flow { to { stroke-dashoffset: -32; } }
         .node {
           position:absolute; transform: translate(-50%, -50%); z-index:2;
           display:flex; align-items:center; gap:12px; width:220px;
-          padding:14px 16px; border-radius:22px; cursor:pointer;
-          border:1px solid rgba(255,255,255,0.10);
-          background: linear-gradient(180deg, rgba(24,34,51,0.94), rgba(18,27,40,0.82));
-          box-shadow: 0 14px 30px rgba(0,0,0,0.26);
+          padding:14px 16px; border-radius:20px; cursor:pointer;
+          border:1px solid rgba(169,191,227,0.12);
+          background: linear-gradient(180deg, rgba(17,26,40,0.96), rgba(13,20,31,0.92));
+          box-shadow: 0 12px 24px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.03);
           text-align:left; color:#edf4ff;
           transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
         }
-        .node:hover { transform: translate(-50%, -50%) scale(1.02); border-color: rgba(255,255,255,0.18); }
-        .node.active { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 65%, white 10%), 0 0 28px color-mix(in srgb, var(--accent) 40%, transparent); }
+        .node:hover { transform: translate(-50%, -50%) scale(1.015); border-color: rgba(210,225,255,0.18); }
+        .node.active {
+          border-color: color-mix(in srgb, var(--accent) 36%, rgba(255,255,255,0.1));
+          box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 42%, transparent), 0 10px 28px rgba(0,0,0,0.28);
+        }
         .node-badge {
-          width:50px; height:50px; flex:0 0 50px; border-radius:16px; display:grid; place-items:center;
-          background: color-mix(in srgb, var(--accent) 24%, rgba(255,255,255,0.04)); color: var(--accent);
+          width:50px; height:50px; flex:0 0 50px; border-radius:15px; display:grid; place-items:center;
+          background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 18%, rgba(255,255,255,0.03)), rgba(255,255,255,0.02));
+          color: var(--accent);
           box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
         }
         .node-badge ha-icon { --mdc-icon-size: 28px; }
@@ -315,91 +347,104 @@ class BoilerHeatFlowCard extends HTMLElement {
 
         .boiler-shell {
           position:absolute; left:50%; top:56%; transform:translate(-50%, -50%); z-index:2;
-          width:232px; height:362px;
+          width:216px; height:358px;
         }
         .boiler-click { position:absolute; inset:0; border:none; background:none; padding:0; cursor:pointer; }
         .boiler-frame {
           position:absolute; inset:0;
-          border-radius:110px;
-          background: linear-gradient(180deg, rgba(245,249,255,0.09), rgba(255,255,255,0.02));
+          border-radius:108px;
+          background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015));
           box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
         }
         .boiler-cap {
-          position:absolute; left:40px; right:40px; top:0; height:24px; border-radius:18px;
-          background: linear-gradient(180deg, rgba(237,244,255,0.35), rgba(148,168,204,0.08));
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.35);
+          position:absolute; left:34px; right:34px; top:6px; height:18px; border-radius:16px;
+          background: linear-gradient(180deg, rgba(244,248,255,0.20), rgba(140,160,195,0.06));
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.26);
         }
         .boiler-body {
-          position:absolute; inset:16px 10px 18px; border-radius:102px;
-          background: linear-gradient(180deg, rgba(28,39,57,0.98), rgba(16,24,35,0.98));
+          position:absolute; inset:18px 12px 20px; border-radius:98px;
+          background: linear-gradient(180deg, #162131 0%, #0f1824 100%);
           box-shadow:
-            inset 0 0 0 1px rgba(255,255,255,0.08),
-            inset 0 20px 32px rgba(255,255,255,0.04),
-            0 20px 46px rgba(0,0,0,0.34);
+            inset 0 0 0 1px rgba(255,255,255,0.07),
+            inset 0 18px 26px rgba(255,255,255,0.022),
+            0 18px 36px rgba(0,0,0,0.30);
           overflow:hidden;
         }
+        .boiler-body::before {
+          content:'';
+          position:absolute; inset:10px;
+          border-radius:88px;
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+          pointer-events:none;
+        }
         .boiler-fill {
-          position:absolute; left:18px; right:18px; bottom:22px; height:${fillPct}; border-radius:84px;
+          position:absolute; left:18px; right:18px; bottom:18px; height:${fillPct}; border-radius:80px;
           background:
-            radial-gradient(circle at 50% 12%, rgba(255,255,255,0.26), transparent 28%),
-            linear-gradient(180deg, ${this._temperatureColor(top)} 0%, ${this._temperatureColor(middle)} 48%, ${this._temperatureColor(bottom)} 100%);
-          box-shadow: inset 0 10px 16px rgba(255,255,255,0.10), 0 0 24px rgba(255,153,71,0.12);
+            linear-gradient(180deg, color-mix(in srgb, ${this._temperatureColor(top)} 70%, white 8%) 0%, ${this._temperatureColor(middle)} 48%, color-mix(in srgb, ${this._temperatureColor(bottom)} 82%, #08101a 18%) 100%);
+          box-shadow: inset 0 10px 16px rgba(255,255,255,0.08);
           transition: height .35s ease;
         }
+        .boiler-fill::before {
+          content:'';
+          position:absolute; left:8%; right:8%; top:8px; height:12px; border-radius:999px;
+          background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.16), rgba(255,255,255,0.05));
+          opacity: .75;
+        }
         .boiler-wave {
-          position:absolute; left:20px; right:20px; bottom: calc(${fillPct} - 10px); height:18px;
+          position:absolute; left:24px; right:24px; bottom: calc(${fillPct} - 6px); height:10px;
           border-radius:999px;
-          background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.25), rgba(255,255,255,0.08));
-          opacity: 0.55;
-          filter: blur(1px);
+          background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.12), rgba(255,255,255,0.03));
+          opacity: 0.28;
         }
         .boiler-glass {
-          position:absolute; inset:8px; border-radius:96px;
-          background: linear-gradient(112deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.02) 26%, transparent 42%, rgba(255,255,255,0.10) 72%, transparent 78%);
-          mix-blend-mode: screen; pointer-events:none;
+          position:absolute; inset:12px; border-radius:92px;
+          background:
+            linear-gradient(102deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 18%, transparent 26%, transparent 62%, rgba(255,255,255,0.08) 78%, transparent 84%);
+          pointer-events:none;
         }
         .boiler-rim {
-          position:absolute; inset:26px 18px 26px; border-radius:88px;
-          border: 1px solid rgba(255,255,255,0.08);
+          position:absolute; inset:22px 16px 22px; border-radius:84px;
+          border: 1px solid rgba(255,255,255,0.06);
           pointer-events:none;
         }
         .boiler-title {
-          position:absolute; top:38px; left:0; right:0; text-align:center; z-index:3; font-size:24px; font-weight:800;
+          position:absolute; top:48px; left:0; right:0; text-align:center; z-index:3; font-size:22px; font-weight:800;
           text-shadow: 0 4px 16px rgba(0,0,0,0.34);
         }
         .boiler-avg {
-          position:absolute; top:70px; left:0; right:0; text-align:center; z-index:3; font-size:13px; color:#dfe9fb;
+          position:absolute; top:78px; left:0; right:0; text-align:center; z-index:3; font-size:13px; color:#dfe9fb;
         }
         .temp-stack {
-          position:absolute; inset:108px 24px 32px; z-index:3; display:flex; flex-direction:column; justify-content:space-between;
+          position:absolute; inset:114px 22px 32px; z-index:3; display:flex; flex-direction:column; justify-content:space-between;
         }
         .temp-chip {
           display:flex; align-items:center; justify-content:space-between; gap:12px; border:none; width:100%;
-          background: rgba(7,11,18,0.32); color:#edf4ff; cursor:pointer;
-          border-radius:16px; padding:10px 12px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.10);
+          background: rgba(7,11,18,0.26); color:#edf4ff; cursor:pointer;
+          border-radius:14px; padding:10px 12px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
         }
-        .temp-chip:hover { background: rgba(7,11,18,0.42); }
+        .temp-chip:hover { background: rgba(7,11,18,0.36); }
         .temp-chip .label { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:#d9e5f8; }
         .temp-chip .value { font-size:18px; font-weight:800; }
         .thermobar {
-          position:absolute; right:18px; top:118px; bottom:42px; width:10px; border-radius:999px; z-index:3;
-          background: linear-gradient(180deg, #ff5f5f 0%, #ffb450 40%, #61d0ff 100%);
-          opacity:.55;
-          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);
+          position:absolute; right:18px; top:122px; bottom:40px; width:8px; border-radius:999px; z-index:3;
+          background: linear-gradient(180deg, #ff5f5f 0%, #ffb450 42%, #61d0ff 100%);
+          opacity:.75;
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
         }
         .legend {
           position:absolute; right:16px; bottom:14px; z-index:3; display:flex; align-items:center; gap:8px;
           padding:7px 11px; border-radius:999px; font-size:12px; color:#93a6c8;
-          background: rgba(19,28,43,0.72); border:1px solid rgba(255,255,255,0.06);
+          background: rgba(12,19,31,0.82); border:1px solid rgba(255,255,255,0.06);
         }
         .legend-dot { width:10px; height:10px; border-radius:50%; background:linear-gradient(180deg, #5bc0ff, #ff9b49); }
-        .legend-arrow { width:18px; height:6px; border-radius:999px; background:linear-gradient(90deg, rgba(255,255,255,0.2), rgba(255,255,255,0.85)); }
+        .legend-arrow { width:18px; height:6px; border-radius:999px; background:linear-gradient(90deg, rgba(255,255,255,0.18), rgba(255,255,255,0.85)); }
         @media (max-width: 920px) { .node { width: 196px; } }
+      </style>
       </style>
       <ha-card>
         <div class="wrap">
           <div class="title">${this._config.title || 'Warmtesysteem'}</div>
-          <div class="version">v5</div>
+          <div class="version">v5.2</div>
           <svg class="flow" viewBox="0 0 100 100" preserveAspectRatio="none">
             <defs>
               <marker id="arrow-hot" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
@@ -424,12 +469,7 @@ class BoilerHeatFlowCard extends HTMLElement {
             ${this._particle('pipe-fireplace', '#ff7d61', '1.7s', fireplaceActive, false, '0s')}
             ${this._particle('pipe-fireplace', '#ff7d61', '1.7s', fireplaceActive, false, '0.85s')}
 
-            <path id="pipe-heatpump" class="pipe-bg" d="M77 54 L62 54 Q56 54 56 49 L56 46" />
-            <path class="pipe-glow pipe-green" d="M77 54 L62 54 Q56 54 56 49 L56 46" />
-            <path class="pipe-active pipe-green ${heatpumpActive && this._config.animations ? 'on' : ''}" d="M77 54 L62 54 Q56 54 56 49 L56 46" />
-            ${this._particle('pipe-heatpump', '#8ce38a', '1.7s', heatpumpActive, false, '0s')}
-            ${this._particle('pipe-heatpump', '#8ce38a', '1.7s', heatpumpActive, false, '0.85s')}
-
+            ${hpPipeHtml}
             ${rightPipeHtml}
           </svg>
 
@@ -535,7 +575,7 @@ class BoilerHeatFlowCardEditor extends HTMLElement {
         <details><summary>Zonnecollector</summary><div class="content"><div id="collector"></div></div></details>
         <details><summary>Tapwater</summary><div class="content"><div class="hint">Je kunt hier ook een debiet/flow-entity meegeven.</div><div id="hotwater"></div></div></details>
         <details><summary>Openhaard</summary><div class="content"><div id="fireplace"></div></div></details>
-        <details><summary>Warmtepomp</summary><div class="content"><div class="hint">Nieuw in v5: aparte aanvoer en retourtemperatuur.</div><div id="heatpump"></div></div></details>
+        <details><summary>Warmtepomp</summary><div class="content"><div class="hint">Nieuw in v5.2: aparte aanvoer- en retourlijnen in de layout.</div><div id="heatpump"></div></div></details>
         <details><summary>Vloerverwarming</summary><div class="content"><div id="floor"></div></div></details>
         <details><summary>Radiatoren</summary><div class="content"><div id="radiator"></div></div></details>
         <details><summary>Legacy verwarming</summary><div class="content"><div class="hint">Alleen gebruiken als je geen aparte vloer/radiator gebruikt.</div><div id="heating"></div></div></details>
