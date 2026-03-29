@@ -1,70 +1,42 @@
-# Boiler Heat Flow Card
 
-v6.1
+# Boiler Heat Flow Card v6.1.1
 
-## Nieuw
-- `center_no_grid`, `card_height`, `card_width`
-- kleinere standaard layout
-- werkende config editor met gewone dropdowns
-- aparte aanvoer/retour warmtepomp
-- optionele tapwater flow sensor
+YAML-only release based on v6.1.
 
-## Voorbeeld
+## Changes
+
+- Based on the working v6.1 code path.
+- Visual editor removed to keep the code editor stable.
+- Thresholds now support **temp** or **delta** mode per source.
+- Legacy flat threshold keys are still supported.
+
+## New threshold format
+
 ```yaml
-type: custom:boiler-heat-flow-card
-title: Warmtesysteem
-center_no_grid: false
-card_height: 90%
-card_width: 90%
-animations: true
-show_legend: true
+thresholds:
+  collector:
+    mode: delta
+    delta: 5
+  fireplace:
+    mode: temp
+    temp: 45
+  heatpump:
+    mode: temp
+    temp: 30
+  hotwater:
+    mode: temp
+    temp: 30
+  floor:
+    mode: temp
+    temp: 25
+  radiator:
+    mode: temp
+    temp: 30
+```
 
-tank:
-  title: Boiler
-  top: sensor.boiler_boven
-  middle: sensor.boiler_midden
-  bottom: sensor.boiler_onder
+## Legacy format still works
 
-collector:
-  entity: sensor.collector_temp
-  pump: binary_sensor.collector_pomp
-  label: Zonnecollector
-  icon: mdi:white-balance-sunny
-
-hotwater:
-  entity: sensor.tapwater_temp
-  flow_entity: sensor.tapwater_flow
-  flow_unit: l/min
-  active: binary_sensor.tapwater_actief
-  label: Tapwater
-  icon: mdi:water-boiler
-
-fireplace:
-  entity: sensor.openhaard_temp
-  active: binary_sensor.openhaard_actief
-  label: Openhaard
-  icon: mdi:fireplace
-
-heatpump:
-  entity: sensor.warmtepomp_temp
-  supply_entity: sensor.warmtepomp_aanvoer
-  return_entity: sensor.warmtepomp_retour
-  active: binary_sensor.warmtepomp_actief
-  label: Warmtepomp
-  icon: mdi:heat-pump
-
-floor:
-  entity: sensor.vloerverwarming_temp
-  active: binary_sensor.vloerverwarming_actief
-  label: Vloerverwarming
-  icon: mdi:heating-coil
-
-radiator:
-  entity: sensor.radiator_temp
-  active: binary_sensor.radiator_actief
-  label: Radiatoren
-  icon: mdi:radiator
-
+```yaml
 thresholds:
   collector_delta: 5
   fireplace_temp: 45
@@ -73,14 +45,3 @@ thresholds:
   floor_temp: 25
   radiator_temp: 30
 ```
-
-
-## v6.1
-
-- Fixed visual config editor registration
-- Stable simple editor with standard dropdowns and inputs
-- YAML config remains supported
-
-
-## v6.2
-This release disables the visual editor intentionally and supports YAML-only configuration for stability.

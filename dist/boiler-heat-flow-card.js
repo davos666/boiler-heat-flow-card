@@ -1,3 +1,4 @@
+
 class BoilerHeatFlowCard extends HTMLElement {
 
   static getStubConfig() {
@@ -21,8 +22,12 @@ class BoilerHeatFlowCard extends HTMLElement {
       floor: { entity: '', active: '', label: 'Vloerverwarming', icon: 'mdi:heating-coil' },
       radiator: { entity: '', active: '', label: 'Radiatoren', icon: 'mdi:radiator' },
       thresholds: {
-        collector_delta: 5, fireplace_temp: 45, heatpump_temp: 30,
-        hotwater_temp: 30, floor_temp: 25, radiator_temp: 30,
+        collector: { mode: 'delta', delta: 5 },
+        fireplace: { mode: 'temp', temp: 45 },
+        heatpump: { mode: 'temp', temp: 30 },
+        hotwater: { mode: 'temp', temp: 30 },
+        floor: { mode: 'temp', temp: 25 },
+        radiator: { mode: 'temp', temp: 30 },
       },
     };
   }
@@ -106,26 +111,72 @@ class BoilerHeatFlowCard extends HTMLElement {
     if (!Number.isFinite(avg)) return 34;
     return Math.max(18, Math.min(82, avg));
   }
+  _legacyThreshold(key) {
+    const thr = this._config.thresholds || {};
+    const defaults = {
+      collector: { mode: 'delta', delta: 5 },
+      fireplace: { mode: 'temp', temp: 45 },
+      heatpump: { mode: 'temp', temp: 30 },
+      hotwater: { mode: 'temp', temp: 30 },
+      floor: { mode: 'temp', temp: 25 },
+      radiator: { mode: 'temp', temp: 30 },
+    };
+    const legacyMap = {
+      collector: ['collector_delta', 'delta'],
+      fireplace: ['fireplace_temp', 'temp'],
+      heatpump: ['heatpump_temp', 'temp'],
+      hotwater: ['hotwater_temp', 'temp'],
+      floor: ['floor_temp', 'temp'],
+      radiator: ['radiator_temp', 'temp'],
+    };
+    const [legacyKey, field] = legacyMap[key] || [];
+    if (legacyKey in thr) {
+      return { ...defaults[key], [field]: Number(thr[legacyKey]) };
+    }
+    return defaults[key] || { mode: 'temp', temp: 0 };
+  }
+  _thresholdConfig(key) {
+    const thr = this._config.thresholds || {};
+    const raw = thr[key];
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      const mode = raw.mode === 'delta' ? 'delta' : 'temp';
+      const delta = Number(raw.delta);
+      const temp = Number(raw.temp);
+      return {
+        mode,
+        delta: Number.isFinite(delta) ? delta : this._legacyThreshold(key).delta,
+        temp: Number.isFinite(temp) ? temp : this._legacyThreshold(key).temp,
+      };
+    }
+    return this._legacyThreshold(key);
+  }
+  _matchesThreshold(key, sourceTemp, boilerRefTemp) {
+    const t = this._thresholdConfig(key);
+    if (!Number.isFinite(sourceTemp)) return false;
+    if (t.mode === 'delta') {
+      return Number.isFinite(boilerRefTemp) && sourceTemp >= boilerRefTemp + Number(t.delta || 0);
+    }
+    return sourceTemp >= Number(t.temp || 0);
+  }
   _activeSource(key, temp, tankTop) {
     const cfg = this._config[key] || {};
-    const thr = this._config.thresholds || {};
     switch (key) {
       case 'collector':
-        return this._bool(cfg.pump) || (Number.isFinite(temp) && Number.isFinite(tankTop) && temp >= tankTop + Number(thr.collector_delta || 5));
+        return this._bool(cfg.pump) || this._matchesThreshold('collector', temp, tankTop);
       case 'hotwater': {
         const flow = this._num(cfg.flow_entity);
-        return this._bool(cfg.active) || (Number.isFinite(flow) && flow > 0) || (Number.isFinite(temp) && temp >= Number(thr.hotwater_temp || 30));
+        return this._bool(cfg.active) || (Number.isFinite(flow) && flow > 0) || this._matchesThreshold('hotwater', temp, tankTop);
       }
       case 'fireplace':
-        return this._bool(cfg.active) || (Number.isFinite(temp) && temp >= Number(thr.fireplace_temp || 45));
+        return this._bool(cfg.active) || this._matchesThreshold('fireplace', temp, tankTop);
       case 'heatpump': {
         const supply = this._num(cfg.supply_entity);
-        return this._bool(cfg.active) || (Number.isFinite(supply) && supply >= Number(thr.heatpump_temp || 30)) || (Number.isFinite(temp) && temp >= Number(thr.heatpump_temp || 30));
+        return this._bool(cfg.active) || this._matchesThreshold('heatpump', supply, tankTop) || this._matchesThreshold('heatpump', temp, tankTop);
       }
       case 'floor':
-        return this._bool(cfg.active) || (Number.isFinite(temp) && temp >= Number(thr.floor_temp || 25));
+        return this._bool(cfg.active) || this._matchesThreshold('floor', temp, tankTop);
       case 'radiator':
-        return this._bool(cfg.active) || (Number.isFinite(temp) && temp >= Number(thr.radiator_temp || 30));
+        return this._bool(cfg.active) || this._matchesThreshold('radiator', temp, tankTop);
       default:
         return false;
     }
@@ -279,7 +330,7 @@ class BoilerHeatFlowCard extends HTMLElement {
       <ha-card>
         <div class="wrap">
           <div class="title">${c.title || 'Warmtesysteem'}</div>
-          <div class="version">v6.1</div>
+          <div class="version">v6.1.1</div>
           <svg class="flow" viewBox="0 0 100 100" preserveAspectRatio="none">
             ${this._renderPipe('collector', nodes.collector.color, nodes.collector.active, '2.6s')}
             ${this._renderPipe('hotwater', nodes.hotwater.color, nodes.hotwater.active, '2.8s', true)}
@@ -328,10 +379,4 @@ class BoilerHeatFlowCard extends HTMLElement {
 }
 
 
-window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 'boiler-heat-flow-card',
-  name: 'Boiler Heat Flow Card',
-  description: 'Warmtestromen voor boiler, collector, openhaard en warmtepomp.',
-  documentationURL: 'https://github.com/davos666/boiler-heat-flow-card'
-});
+customElements.define('boiler-heat-flow-card', BoilerHeatFlowCard);
